@@ -1,7 +1,7 @@
 from typing import Tuple
 from keras import layers, models
 
-from pyAFM import Utilities
+from AFMpy import Utilities
 
 __all__ = ['CAE']
 

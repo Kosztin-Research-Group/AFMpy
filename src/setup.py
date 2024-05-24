@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'pyAFM',
+    name = 'AFMpy',
     version = '0.2.0',
     author = 'Creighton M. Lisowski',
     author_email = 'clisowski@missouri.edu',

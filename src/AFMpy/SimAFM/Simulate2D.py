@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import MDAnalysis as MDA
 
-from pyAFM import Utilities
+from AFMpy import Utilities
 
 logger = Utilities.Logging.make_module_logger(__name__)
 

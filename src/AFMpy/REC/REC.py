@@ -6,8 +6,8 @@ from sklearn.metrics.pairwise import rbf_kernel
 
 from pystackreg import StackReg
 
-from pyAFM.DL import Models, Losses
-from pyAFM import Utilities
+from AFMpy.DL import Models, Losses
+from AFMpy import Utilities
 
 __all__ = ['center_image', 'center_stack', 'register_image', 'register_stack', 'spectral_cluster']
 

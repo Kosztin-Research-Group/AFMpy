@@ -1,4 +1,6 @@
-tests/
+tests/stacks/
+tests/traj/
 __pycache__/
 *.egg-info/
 *.pyc
+.ipynb_checkpoints/
