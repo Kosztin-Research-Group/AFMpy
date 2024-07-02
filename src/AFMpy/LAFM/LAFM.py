@@ -3,6 +3,8 @@ import cv2
 from skimage.exposure import rescale_intensity
 from skimage.feature import peak_local_max
 
+from typing import Tuple
+
 from AFMpy import Utilities
 
 logger = Utilities.Logging.make_module_logger(__name__)
@@ -21,7 +23,7 @@ _G = lambda z: _R(z)*z/_N
 _B = lambda z: z*(np.sin(0.037*(z+_N/2))+1)/2
 
 def LAFM2D(stack: np.ndarray,
-           resize_factor: int = 3,
+           target_resolution: Tuple[int, int],
            sigma: float = 3, **peak_local_max_kwargs):
     """
     Generates an LAFM image with real space height pixel intensity from a stack of AFM images.
@@ -56,11 +58,11 @@ def LAFM2D(stack: np.ndarray,
 
         ### Resizing the image and normalized image by the resize factor
         expanded_image = cv2.resize(image,
-                                    (resize_factor * image.shape[0], resize_factor * image.shape[1]), 
+                                    target_resolution, 
                                     cv2.INTER_CUBIC)
         
         expanded_norm_image = cv2.resize(norm_image,
-                                         (resize_factor * image.shape[0], resize_factor * image.shape[1]),
+                                         target_resolution,
                                          cv2.INTER_CUBIC)
         
         ### Extracting local maxima from the normalized image

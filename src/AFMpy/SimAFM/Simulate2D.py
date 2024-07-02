@@ -573,10 +573,10 @@ def simulate_AFM2D(atom_coords: np.ndarray,
     f = np.sqrt((Px - Sx)**2 + (Py - Sy)**2)
     
     # Calculate the condition for contact to occur on the cone
-    condition = f >= (atom_radii + tip_radius) * np.cos(np.deg2rad(tip_theta))
+    condition = f >= (atom_radii + tip_radius) * np.cos(tip_theta)
 
     # Calculate the contact height for the cone and the sphere
-    cone_contact = (Sz + atom_radii * np.sin(tip_theta) + atom_radii * np.cos(tip_theta) * (1/np.tan(tip_theta))) - f * (1/np.tan(tip_theta)) + (tip_radius * (1/np.sin(tip_theta) - 1))
+    cone_contact = Sz + atom_radii * (1/np.sin(tip_theta)) - f * (1/np.tan(tip_theta)) + (tip_radius * (1/np.sin(tip_theta) - 1))
 
     sphere_contact = np.sqrt(np.abs((atom_radii + tip_radius)**2 - f**2)) + Sz - tip_radius
     contact_heights = np.max(np.where(condition, cone_contact, sphere_contact), axis = -1)

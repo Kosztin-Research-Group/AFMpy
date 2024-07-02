@@ -1,6 +1,8 @@
 import numpy as np
 from typing import Tuple
 
+__all__ = ['norm']
+
 def norm(x: np.ndarray,
          range: Tuple[float, float] = (0,1)):
     """

@@ -48,7 +48,7 @@ def CAE(input_shape: tuple,
 
     # Flatten the input to the latent space
     x = layers.Flatten()(x)
-    latent = layers.Dense(latent_dim, name = 'latent_representation')(x)
+    latent = layers.Dense(latent_dim,activation = 'relu', name = 'latent')(x)
 
     # Encapsulate the encoder
     encoder = models.Model(encoder_input, latent, name = 'encoder')

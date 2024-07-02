@@ -98,7 +98,7 @@ def set_logfile(logger, logfile):
         None
     '''
     # Create the file handler
-    file_handler = logging.FileHandler(logfile, mode='w')
+    file_handler = logging.FileHandler(logfile, mode='a')
 
     # Create the formatter and add it to the handler
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -146,6 +146,39 @@ def configure_module_logging(module_name, enable=True, level_str='warning', logf
         set_logfile(logger, logfile)
 
 
+def get_Ioan_quote():
+    '''
+    Returns a random quote from Dr. Ioan Kosztin.
+
+    Parameters:
+        None
+
+    Returns (str):
+        A random quote from Dr. Ioan Kosztin.
+    '''
+    ioan_quotes = ['Remember, there are no silver bullets... - Ioan Kosztin',
+                'Remember, there\'s no free lunch... - Ioan Kosztin',
+                'Remember, garbage in, garbage out... - Ioan Kosztin'
+                'Registration or Clustering; The Chicken or the Egg... - Ioan Kosztin',
+                'Methods development is like a pencil... You can sharpen it all day long, but will you ever write with it? - Ioan Kosztin',
+                ]
+    
+    return random.choice(ioan_quotes)
+
+def log_Ioan_quote(logger: logging.Logger):
+    '''
+    Logs a random quote from Dr. Ioan Kosztin.
+
+    Parameters:
+        logger (logging.Logger):
+            The logger to log the quote to.
+    
+    Returns (None):
+        None
+    '''
+    quote = get_Ioan_quote()
+    logger.info(quote)
+
 def print_Ioan_quote():
     '''
     Prints a random quote from Dr. Ioan Kosztin.
@@ -156,11 +189,5 @@ def print_Ioan_quote():
     Returns (None):
         None
     '''
-    ioan_quotes = ['Remember, there are no silver bullets... - Ioan Kosztin',
-                   'Remember, there\'s no free lunch... - Ioan Kosztin',
-                   'Remember, garbage in, garbage out... - Ioan Kosztin'
-                   'Registration or Clustering; The Chicken or the Egg... - Ioan Kosztin',
-                   'Methods development is like a pencil... You can sharpen it all day long, but will you ever write with it? - Ioan Kosztin',
-                   ]
-    
-    print(random.choice(ioan_quotes))
+    quote = get_Ioan_quote()
+    print(quote)

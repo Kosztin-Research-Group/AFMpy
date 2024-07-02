@@ -1,1 +1,1 @@
-from . import DL, LAFM, REC, SimAFM, Utilities
+from . import DL, LAFM, REC, SimAFM, SSIM, Utilities
