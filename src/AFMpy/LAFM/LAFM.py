@@ -24,7 +24,7 @@ _B = lambda z: z*(np.sin(0.037*(z+_N/2))+1)/2
 
 def LAFM2D(stack: np.ndarray,
            target_resolution: Tuple[int, int],
-           sigma: float = 3, **peak_local_max_kwargs):
+           sigma: float, **peak_local_max_kwargs):
     """
     Generates an LAFM image with real space height pixel intensity from a stack of AFM images.
 
