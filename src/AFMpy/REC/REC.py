@@ -671,13 +671,13 @@ def hierarchical_DSC(image_stack: np.ndarray,
         compliment = []
 
         # Remove any clusters that are too small
-        too_small = np.sum(stable_clusters, axis = 1) < min_cluster_size
-        stable_clusters = stable_clusters[np.logical_not(too_small)]
+        # too_small = np.sum(stable_clusters, axis = 1) < min_cluster_size
+        # stable_clusters = stable_clusters[np.logical_not(too_small)]
         
-        if len(stable_clusters) == 0:
-            output_indexes.append(mutable_indexes)
-            logger.info(f'All stable clusters are too small. Exiting at iteration {iteration}.')
-            break
+        # if len(stable_clusters) == 0:
+        #     output_indexes.append(mutable_indexes)
+        #     logger.info(f'All stable clusters are too small. Exiting at iteration {iteration}.')
+        #     break
 
         for stable_cluster in stable_clusters:
             stable_indexes = mutable_indexes[stable_cluster]
