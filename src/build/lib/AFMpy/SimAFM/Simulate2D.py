@@ -619,9 +619,7 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
     stack = np.empty((universe.trajectory.n_frames, *grid.shape[:2]))
     # Loop through the trajectory and create an image for each frame
     for traj_index, _ in enumerate(universe.trajectory):
-
-	# Logging the current index of the trajectory
-	logger.debug(f'Generating Frame {traj_index}')
+        
         # Set the background height
         memb_center = universe.select_atoms(memb_selection).center_of_geometry()
         head_atoms = universe.select_atoms(f'{memb_selection} and {head_selection} and prop z > {memb_center[-1]}')
