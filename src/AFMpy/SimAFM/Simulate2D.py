@@ -586,7 +586,8 @@ def simulate_AFM2D(atom_coords: np.ndarray,
 
 def simulate_AFM2D_stack(universe: MDA.Universe,
                          atom_selection: str,
-                         bg_selection: str,
+                         memb_selection: str,
+                         head_selection: str,
                          grid: np.ndarray,
                          tip_radius: float,
                          tip_theta: float,
@@ -599,8 +600,10 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
             The MDAnalysis Universe object.
         atom_selection (str):
             The atom selection string.
-        bg_selection (str):
-            The background selection string.
+        memb_selection (str):
+            The membrane selection string.
+        head_selection (str):
+            The headgroup selection string.
         grid (numpy.ndarray):
             The grid of pixel coordinates. Shape is (n_pixels_x, n_pixels_y, 2).
         tip_radius (float):
@@ -618,7 +621,9 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
     for traj_index, _ in enumerate(universe.trajectory):
         
         # Set the background height
-        background = universe.select_atoms(bg_selection).center_of_geometry()[-1]
+        memb_center = universe.select_atoms(memb_selection).center_of_geometry()
+        head_atoms = universe.select_atoms(f'{memb_selection} and {head_selection} and prop z > {memb_center[-1]}')
+        background = head_atoms.center_of_geometry()[-1]
 
         # Select the protein atoms above the background and subtract the background
         prot_atoms = universe.select_atoms(f'{atom_selection} and prop z > {background}')
@@ -674,7 +679,8 @@ def _thread_simulate_AFM2D_stack(args_tuple: tuple) -> np.ndarray:
 
 def simulate_AFM2D_stack_MP(universe: MDA.Universe,
                             atom_selection: str,
-                            bg_selection: str,
+                            memb_selection: str,
+                            head_selection: str,
                             grid: np.ndarray,
                             tip_radius: float,
                             tip_theta: float,
@@ -694,8 +700,10 @@ def simulate_AFM2D_stack_MP(universe: MDA.Universe,
             The MDAnalysis Universe object.
         atom_selection (str):
             The atom selection string.
-        bg_selection (str):
-            The background selection string.
+        memb_selection (str):
+            The membrane selection string.
+        head_selection (str):
+            The headgroup selection string.
         grid (numpy.ndarray):
             The grid of pixel coordinates. Shape is (n_pixels_x, n_pixels_y, 2).
         tip_radius (float):
@@ -726,7 +734,9 @@ def simulate_AFM2D_stack_MP(universe: MDA.Universe,
     for traj_index, _ in enumerate(universe.trajectory):
         
         # Set the background height
-        background = universe.select_atoms(bg_selection).center_of_geometry()[-1]
+        memb_center = universe.select_atoms(memb_selection).center_of_geometry()
+        head_atoms = universe.select_atoms(f'{memb_selection} and {head_selection} and prop z > {memb_center[-1]}')
+        background = head_atoms.center_of_geometry()[-1]
 
         # Select the protein atoms above the background and subtract the background
         prot_atoms = universe.select_atoms(f'{atom_selection} and prop z > {background}')
