@@ -427,7 +427,7 @@ def validate_autoencoder_params(autoencoder_params: Dict[str, any]) -> None:
             raise ValueError(f'Invalid parameter type for {key}. Expected {expected_type}, got {type(value)}.')
     
     # Log that all parameters are valid
-    logger.info('All supplied autoencoder parameters are valid.')
+    logger.debug('All supplied autoencoder parameters are valid.')
 
 def calculate_LFV(image_stack: np.ndarray,
                   autoencoder_params: Dict[str, any] = None) -> np.ndarray:
@@ -736,7 +736,7 @@ def validate_registration_params(registration_params: Dict[str, any]) -> None:
             raise ValueError(f'Invalid parameter type for {key}. Expected {expected_type}, got {type(value)}.')
 
     # Log that all parameters are valid
-    logger.info('All supplied registration parameters are valid.')
+    logger.debug('All supplied registration parameters are valid.')
 
 def REC(image_stack: np.ndarray,
         reference_index: int = 0,
@@ -861,6 +861,8 @@ def IREC(image_stack: np.ndarray,
     Returns:
         list: A list containing n registered clustered stacks of images.
     '''
+    # Log that IREC is being performed.
+    logger.info(f'Performing IREC with {n_clusters} clusters.')
 
     # Perform the initial REC to get refined indexes
     logger.info(f'Performing initial REC with reference index {reference_index}')
@@ -925,7 +927,7 @@ def IREC(image_stack: np.ndarray,
 
         # Check if all clusters have converged, break the loop
         if np.all(converged):
-            logger.info('All clusters have converged. Exiting iterative process.')
+            logger.info(f'All clusters have converged at iteration {iteration}. Exiting iterative process.')
             break
 
         if iteration == max_iterations - 1:

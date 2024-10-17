@@ -22,7 +22,8 @@ from AFMpy import Utilities
 
 __all__ = ['center_image', 'center_stack', 'register_image', 'register_stack', 'local_scaled_affinity',
            'local_scaled_distance','affinity_refinement', 'calculate_LFV', 'spectral_cluster', 'DSC', 
-           'hierarchical_DSC', 'REC', 'IREC', 'validate_autoencoder_params', 'validate_registration_params']
+           'hierarchical_DSC', 'REC', 'IREC', 'validate_autoencoder_params', 'validate_registration_params',
+           'default_registration_params', 'default_autoencoder_params']
 
 logger = Utilities.Logging.make_module_logger(__name__)
 
