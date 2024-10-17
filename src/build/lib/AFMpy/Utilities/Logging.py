@@ -103,6 +103,9 @@ def set_logfile(logger, logfile):
     # Create the formatter and add it to the handler
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(formatter)
+
+    # Set the logging level to that of the logger
+    file_handler.setLevel(logger.level)
     
     # Clear the handlers and add the new handler
     logger.handlers.clear()
@@ -140,6 +143,9 @@ def configure_module_logging(module_name, enable=True, level_str='warning', logf
     
     # Set the logging level
     set_logging_level(logger, level_str)
+
+    # Turn off logger propogation to ancesotr loggers
+    logger.propagate = False
     
     # Set the log file if specified
     if logfile:
