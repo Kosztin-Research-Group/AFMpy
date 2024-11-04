@@ -237,7 +237,7 @@ def register_stack(ref: np.ndarray,
                    stack: np.ndarray,
                    method: str = 'rigid') -> np.ndarray:
     '''
-    Registers a stack of images to the first image in the stack using a given method.
+    Registers a stack of images to a reference image.
 
     Args:
         ref (np.ndarray):

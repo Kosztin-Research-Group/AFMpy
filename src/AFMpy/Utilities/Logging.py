@@ -164,9 +164,9 @@ def get_Ioan_quote():
     '''
     ioan_quotes = ['Remember, there are no silver bullets... - Ioan Kosztin',
                 'Remember, there\'s no free lunch... - Ioan Kosztin',
-                'Remember, garbage in, garbage out... - Ioan Kosztin'
+                'Remember, garbage in, garbage out... - Ioan Kosztin',
                 'Registration or Clustering; The Chicken or the Egg... - Ioan Kosztin',
-                'Methods development is like a pencil... You can sharpen it all day long, but will you ever write with it? - Ioan Kosztin',
+                'Your method is like a pencil... You can sharpen it all day long, but will you ever write with it? - Ioan Kosztin',
                 ]
     
     return random.choice(ioan_quotes)
