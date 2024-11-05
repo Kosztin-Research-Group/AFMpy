@@ -8,4 +8,7 @@ setup(
     packages = find_packages(exclude=['tests*']),
     license = 'GPLv3',
     description = 'Python package for Simulated AFM and AFM image analysis',
+    extras_require = {
+        'gpu': ['cupy'],
+    },
 )
