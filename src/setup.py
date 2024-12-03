@@ -9,6 +9,6 @@ setup(
     license = 'GPLv3',
     description = 'Python package for Simulated AFM and AFM image analysis',
     extras_require = {
-        'gpu': ['cupy'],
+        'gpu': ['cupy-cuda12x'],
     },
 )
