@@ -5,7 +5,7 @@
     - [CPU Version](#cpu-version)
         - [CPU Dependencies](#cpu-dependencies)
         - [CPU Installation Walkthrough](#cpu-installation-walkthrough)
-    - [GPU Version](#GPU-version)
+    - [GPU Version](#gpu-version)
         - [GPU Dependencies](#gpu-dependencies)
         - [GPU Installation Walkthrough](#gpu-installation-walkthrough)
 - [Usage](#usage)
