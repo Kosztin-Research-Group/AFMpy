@@ -1,7 +1,7 @@
 import copy
-import hashlib
 import lzma
 import pickle
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
@@ -11,7 +11,7 @@ import numpy as np
 from AFMpy import Utilities
 
 # Create a logger for this module.
-logger = Utilities.Logging.make_module_logger(__name__)
+logger = logging.getLogger(__name__)
 
 __all__ = ['VDW_Dict', 'AA_VDW_Dict', 'CG_VDW_Dict', 'SimAFM_Stack', 'make_grid', 'make_radius_array']
 
@@ -133,180 +133,96 @@ class SimAFM_Stack():
     ##### Save/Load Methods #####
     #############################
 
-    @staticmethod
-    def _hash_file(filepath: str) -> str:
-        '''
-        Calculates the sha256 hash of a file.
-
-        Args:
-            filepath (str):
-                The path to the file to hash.
-        Returns:
-            str:
-                The sha256 hash of the file.
-        '''
-        # Initialize the hash object.
-        sha256 = hashlib.sha256()
-        with open(filepath, 'rb') as file:
-            # Read the file in chunks and update the hash object.
-            for chunk in iter(lambda: file.read(4096), b''):
-                sha256.update(chunk)
-        # Return the hexdigest of the hash object.
-        return sha256.hexdigest()
-    
     def save_pickle(self,
-                    filepath: str,
-                    hash: bool = True) -> None:
+                    pickle_filepath: str,
+                    private_key_filepath: str) -> None:
         '''
-        Saves the SimAFM_Stack object to a pickle file.
+        Saves the SimAFM_Stack object to a pickle file. The pickle file is then digitally signed with a private key.
 
         Args:
-            filepath (str):
+            pickle_filepath (str):
                 The path to save the pickle file.
-            hash (bool):
-                Whether or not to save the sha256 hash of the file. Default is True.
+            private_key_filepath (str):
+                The path to your private key file.
+
         Returns:
             None
         '''
         # Save the pickle file.
-        with open(filepath, 'wb') as file:
+        with open(pickle_filepath, 'wb') as file:
             pickle.dump(self, file)
         
-        # Save the hash of the file.
-        if hash:
-            hash_str = self._hash_file(filepath)
-            with open(f'{filepath}.sha256', 'w') as file:
-                file.write(hash_str)
-        else:
-            # Warn the user that hashing is disabled.
-            logger.warning(f'Hashing disabled. {hash_warning}')
+        # Digitally sign the pickle file.
+        Utilities.Signature.sign_file(pickle_filepath, private_key_filepath)
         
     @classmethod
     def load_pickle(cls,
-                    filepath: str,
-                    verify_hash: bool = True) -> 'SimAFM_Stack':
+                    pickle_filepath: str,
+                    public_key_filepath) -> 'SimAFM_Stack':
         '''
-        Loads a SimAFM_Stack object from a pickle file. If verify_hash is True, the sha256 hash of the file will be checked 
-        against the hash file with the same name as the pickle file and the extension .sha256. If the hashes do not match,
-        a ValueError will be raised. If verify_hash is False, the hash will not be checked. Pickles are not
-        robust against eroneous or maliciously constructed data. It is recommended that you never unpack data recieved
-        from untrusted or unauthenticated sources. See https://docs.python.org/3/library/pickle.html.
+        Loads a SimAFM_Stack object from a pickle file. The pickle file must be verified via a digital signature with a public key.
 
         Args:
-            filepath (str):
+            pickle_filepath (str):
                 The path to the pickle file.
-            verify_hash (bool):
-                Whether or not to verify the hash of the file. Default is True.
+            public_key_filepath (str):
+                The path to your public key file.
         Returns:
             SimAFM_Stack:
                 The loaded SimAFM_Stack object.
         '''
-        # Verify the hash of the file
-        if verify_hash:
-            hash_str = cls._hash_file(filepath)
+        # Verify the digital signature of the pickle file.
+        Utilities.Signature.verify_file(pickle_filepath, public_key_filepath)
 
-            # Try to open the hash file. If it does not exist, raise a FileNotFoundError.
-            try:
-                with open(f'{filepath}.sha256', 'r') as file:
-                    file_hash = file.read()
-            except FileNotFoundError:
-                logger.error(f'Hash file not found. Cannot verify the integrity of the pickle file. Verify the integrity of the file manually or disable hash verification. {hash_warning}')
-                raise FileNotFoundError(f'Hash file not found. Cannot verify the integrity of the pickle file. Verify the integrity of the file manually or disable hash verification. {hash_warning}')
-            
-            # Check if the hash of the file matches the hash in the hash file. If not, raise a ValueError.
-            if hash_str != file_hash:
-                logger.error(f'Hash mismatch. {hash_warning}')
-                raise ValueError(f'Hash mismatch. Cannot verify the integrity of the pickle file. Verify the integrity of the file manually or disable hash verification. {hash_warning}')
-            
-            # Load the pickle file.
-            with open(filepath, 'rb') as file:
-                obj = pickle.load(file)
+        # Load the pickle file.
+        with open(pickle_filepath, 'rb') as file:
+            obj = pickle.load(file)
         
-        else:
-            # Warn the user that hash verification is disabled.
-            logger.warning(f'Hash verification disabled. {hash_warning}')
-            
-            # Load the pickle file.
-            with open(filepath, 'rb') as file:
-                obj = pickle.load(file)
-
         return obj
     
-    def save_lzma(self,
-                  filepath: str,
-                  hash: bool = True) -> None:
+    def save_compressed_pickle(self,
+                               pickle_filepath: str,
+                               private_key_filepath) -> None:
         '''
-        Saves the SimAFM_Stack object to a lzma compressed pickle file.
+        Saves the SimAFM_Stack object to a lzma compressed pickle file. The pickle file is then digitally signed with a private key.
 
         Args:
-            filepath (str):
+            pickle_filepath (str):
                 The path to save the lzma compressed pickle file.
-            hash (bool):
-                Whether or not to save the sha256 hash of the file. Default is True.
+            private_key_filepath (str):
+                The path to your private key file.
         Returns:
             None       
         '''
         # Save the lzma compressed pickle file.
-        with lzma.open(filepath, 'wb') as file:
+        with lzma.open(pickle_filepath, 'wb') as file:
             pickle.dump(self, file)
+
+        # Digitally sign the lzma compressed pickle file.
+        Utilities.Signature.sign_file(pickle_filepath, private_key_filepath)        
         
-        # Save the hash of the file.
-        if hash:
-            hash_str = self._hash_file(filepath)
-            with open(f'{filepath}.sha256', 'w') as file:
-                file.write(hash_str)
-        else:
-            # Warn the user that hashing is disabled.
-            logger.warning(f'Hashing disabled. {hash_warning}')
-    
     @classmethod
-    def load_lzma(cls,
-                  filepath: str,
-                  verify_hash: bool = True) -> 'SimAFM_Stack':
+    def load_compressed_pickle(cls,
+                               pickle_filepath: str,
+                               public_key_filepath) -> 'SimAFM_Stack':
         '''
-        Loads a SimAFM_Stack object from a lzma compressed pickle file. If verify_hash is True, the sha256 hash of the file will be checked 
-        against the hash file with the same name as the lzma file and the extension .sha256. If the hashes do not match,
-        a ValueError will be raised. If verify_hash is False, the hash will not be checked. Pickle objects are not
-        robust against eroneous or maliciously constructed data. It is recommended that you never unpack data recieved
-        from untrusted or unauthenticated sources. See https://docs.python.org/3/library/pickle.html.
+        Loads a SimAFM_Stack object from a compressed pickle file. The pickle file must be verified via a digital signature with a public key.
 
         Args:
-            filepath (str):
+            pickle_filepath (str):
                 The path to the lzma compressed pickle file.
-            verify_hash (bool):
-                Whether or not to verify the hash of the file. Default is True.
+            public_key_filepath (str):
+                The path to the public key file.
         Returns:
             SimAFM_Stack:
                 The loaded SimAFM_Stack object.
         '''
-        # Verify the hash of the file
-        if verify_hash:
-            hash_str = cls._hash_file(filepath)
+        # Verify the digital signature of the lzma compressed pickle file.
+        Utilities.Signature.verify_file(pickle_filepath, public_key_filepath)
 
-            # Try to open the hash file. If it does not exist, raise a FileNotFoundError.
-            try:
-                with open(f'{filepath}.sha256', 'r') as file:
-                    file_hash = file.read()
-            except FileNotFoundError:
-                logger.error(f'Hash file not found. Cannot verify the integrity of the lzma file. Verify the integrity of the file manually or disable hash verification. {hash_warning}')
-                raise FileNotFoundError(f'Hash file not found. Cannot verify the integrity of the lzma file. Verify the integrity of the file manually or disable hash verification. {hash_warning}')
-            
-            # Check if the hash of the file matches the hash in the hash file. If not, raise a ValueError.
-            if hash_str != file_hash:
-                logger.error(f'Hash mismatch. {hash_warning}')
-                raise ValueError(f'Hash mismatch. Cannot verify the integrity of the lzma file. Verify the integrity of the file manually or disable hash verification. {hash_warning}')
-            
-            # Load the lzma file.
-            with lzma.open(filepath, 'rb') as file:
-                obj = pickle.load(file)
-        
-        else:
-            # Warn the user that hash verification is disabled.
-            logger.warning(f'Hash verification disabled. {hash_warning}')
-            
-            # Load the lzma file.
-            with lzma.open(filepath, 'rb') as file:
-                obj = pickle.load(file)
+        # Load the lzma file.
+        with lzma.open(pickle_filepath, 'rb') as file:
+            obj = pickle.load(file)
 
         return obj
     

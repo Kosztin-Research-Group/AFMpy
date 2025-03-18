@@ -46,7 +46,7 @@ Activate the conda environment by running:
 
 ```bash
 # If using the default environment name
-conda activate  AFMpy-CPU
+conda activate AFMpy-CPU
 
 # Or, if you created a custom environment name
 conda activate your_environment_name
@@ -103,7 +103,7 @@ conda env create -f environment_GPU.yml -n your_environment_name
 Activate the conda environment by running:
 ```bash
 # If using the default environment name
-conda activate  AFMpy-GPU
+conda activate AFMpy-GPU
 
 # Or, if you created a custom environment name
 conda activate your_environment_name
