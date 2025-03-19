@@ -1,7 +1,6 @@
+import logging
 import numpy as np
 import cupy as cp
-
-from AFMpy import Utilities
 
 # Import MDAnalysis
 import MDAnalysis as MDA
@@ -10,7 +9,7 @@ import MDAnalysis as MDA
 from .Simulate_Common import VDW_Dict, make_radius_array
 
 # Create a logger for this module
-logger = Utilities.Logging.make_module_logger(__name__)
+logger = logging.getLogger(__name__)
 
 __all__ = ['simulate_AFM2D', 'simulate_AFM2D_stack']
 
@@ -85,7 +84,7 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
                          tip_theta: float,
                          vdw_dict: VDW_Dict) -> np.ndarray:
     '''
-    Generates a stack of simulated AFM images in serial.
+    Generates a stack of simulated AFM images in serial using GPU acceleration.
 
     Args:
         universe (MDAnalysis.Universe):
@@ -133,4 +132,5 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
         # Generate the AFM image and place it in the stack
         stack[traj_index] = simulate_AFM2D(prot_positions, radius_array, grid, tip_radius, tip_theta)
 
+    logger.info('Successfully generated the AFM image stack.')
     return stack

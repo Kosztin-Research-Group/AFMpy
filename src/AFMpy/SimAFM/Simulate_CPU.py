@@ -1,8 +1,7 @@
 import os
+import logging
 import multiprocessing as mp
 import numpy as np
-
-from AFMpy import Utilities
 
 # Import MDAnalysis
 import MDAnalysis as MDA
@@ -11,7 +10,7 @@ import MDAnalysis as MDA
 from .Simulate_Common import VDW_Dict, make_radius_array
 
 # Create a logger for this module
-logger = Utilities.Logging.make_module_logger(__name__)
+logger = logging.getLogger(__name__)
 
 __all__ = ['simulate_AFM2D', 'simulate_AFM2D_stack', 'simulate_AFM2D_stack_MP']
 
@@ -100,14 +99,14 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
             The stack of simulated AFM images. Shape is (n_images, n_pixels_x, n_pixels_y)
     '''
     # Logging that this calculation is being performed on CPU.
-    logger.info('Simulating AFM images on CPU with numpy.')
+    logger.info('Simulating AFM images on single CPU with numpy.')
 
     stack = np.empty((universe.trajectory.n_frames, *grid.shape[:2]))
     # Loop through the trajectory and create an image for each frame
     for traj_index, _ in enumerate(universe.trajectory):
 
         # Logging the current index of the trajectory
-        logger.debug(f'Generating Frame {traj_index}')
+        logger.debug(f'Simulating Frame {traj_index}.')
         # Set the background height
         memb_center = universe.select_atoms(memb_selection).center_of_geometry()
         head_atoms = universe.select_atoms(f'{memb_selection} and {head_selection} and prop z > {memb_center[-1]}')
@@ -124,6 +123,7 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
         # Generate the AFM image and place it in the stack
         stack[traj_index] = simulate_AFM2D(prot_positions, radius_array, grid, tip_radius, tip_theta)
 
+    logger.info('Successfully generated the AFM image stack.')
     return stack
 
 def _thread_simulate_AFM2D_stack(args_tuple: tuple) -> np.ndarray:
@@ -155,6 +155,8 @@ def _thread_simulate_AFM2D_stack(args_tuple: tuple) -> np.ndarray:
 
     # Loop over the trajectory and calculate the AFM image for each frame
     for index, (coords, radii) in enumerate(zip(coords_array, radii_array)):
+        
+        logger.debug(f'Simulating Frame {index} on process {mp.current_process().name}')
 
         # Generate the AFM image
         image = simulate_AFM2D(coords, radii, grid, tip_radius, tip_theta)
@@ -213,11 +215,14 @@ def simulate_AFM2D_stack_MP(universe: MDA.Universe,
         n_procs = len(os.sched_getaffinity(0))
         logger.warning(f'Number of processes not specified. Using {n_procs} processes. This may degrade performance. It is recommended to specify a number of processes <= the number of physical cores on the machine.')
     
+    logger.info(f'Simulating AFM images on multiple CPU with numpy using {n_procs} processes.')
+
     # Initialize empty coordinate arrays and radius arrays
     traj_len = universe.trajectory.n_frames
     traj_coords = np.empty(traj_len, dtype = object)
     traj_radii = np.empty(traj_len, dtype = object)
 
+    logger.debug('Looping through the trajectory and extracting atom coordinates and radii.')
     # Loop through the trajectory and extract the atom coordinates and radii
     for traj_index, _ in enumerate(universe.trajectory):
         
@@ -238,6 +243,7 @@ def simulate_AFM2D_stack_MP(universe: MDA.Universe,
         traj_coords[traj_index] = prot_positions
         traj_radii[traj_index] = radius_array
     
+    logger.debug('Splitting the trajectory coords and radii into chunks for multiprocessing.')
     # Split the trajectory into chunks for multiprocessing
     splits = np.array_split(np.arange(0, traj_len), n_procs)
     split_coords = [traj_coords[split] for split in splits]
@@ -251,6 +257,7 @@ def simulate_AFM2D_stack_MP(universe: MDA.Universe,
                      [tip_theta]*n_procs))
     
     # Create the multiprocessing pool and generate the stack
+    logger.debug('Creating multiprocessing pool.')
     with mp.Pool(processes = n_procs) as pool:
         stack = np.concatenate(pool.map(_thread_simulate_AFM2D_stack, args))
 

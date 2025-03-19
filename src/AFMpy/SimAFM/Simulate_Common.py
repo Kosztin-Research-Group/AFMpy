@@ -2,6 +2,7 @@ import copy
 import lzma
 import pickle
 import logging
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
@@ -14,9 +15,6 @@ from AFMpy import Utilities
 logger = logging.getLogger(__name__)
 
 __all__ = ['VDW_Dict', 'AA_VDW_Dict', 'CG_VDW_Dict', 'SimAFM_Stack', 'make_grid', 'make_radius_array']
-
-# Warning message for hash verification. This is used many times in the code and is stored here for easy access.
-hash_warning = 'Beware: Compressed objects are not secure against erroneous or maliciously constructed data. Never unpack data recieved from an untrusted or unauthenticated source. See https://docs.python.org/3/library/pickle.html.'
 
 class VDW_Dict(ABC, dict):
     '''
@@ -135,7 +133,8 @@ class SimAFM_Stack():
 
     def save_pickle(self,
                     pickle_filepath: str,
-                    private_key_filepath: str) -> None:
+                    private_key_filepath: str = None,
+                    sign_pickle: bool = True) -> None:
         '''
         Saves the SimAFM_Stack object to a pickle file. The pickle file is then digitally signed with a private key.
 
@@ -144,21 +143,35 @@ class SimAFM_Stack():
                 The path to save the pickle file.
             private_key_filepath (str):
                 The path to your private key file.
-
+            sign_pickle (bool):
+                Whether or not to digitally sign the pickle file. Default is True. Signing the pickle is recommended if you
+                intend to distribute the pickle file, so the recipient can verify the authenticity of the file.
         Returns:
             None
         '''
         # Save the pickle file.
+        logger.debug(f'Writing SimAFM_Stack {id(self)} to {pickle_filepath}.')
         with open(pickle_filepath, 'wb') as file:
             pickle.dump(self, file)
         
-        # Digitally sign the pickle file.
-        Utilities.Signature.sign_file(pickle_filepath, private_key_filepath)
+        if sign_pickle:
+            if not private_key_filepath:
+                logger.error('Private key file path not provided. Cannot sign pickle file.')
+                raise ValueError('Private key file path not provided. Cannot sign pickle file.')
+            else:
+                # Digitally sign the pickle file.
+                logger.debug(f'Signing {pickle_filepath}.')
+                Utilities.Signature.sign_file(pickle_filepath, private_key_filepath)
+        else:
+            logger.warning('Pickle signature disabled. This is not recommended if you intend to distribute the pickle file.')
+            warnings.warn('Pickle signature disabled. This is not recommended if you intend to distribute the pickle file.')
+
         
     @classmethod
     def load_pickle(cls,
                     pickle_filepath: str,
-                    public_key_filepath) -> 'SimAFM_Stack':
+                    public_key_filepath: str = None,
+                    verify_pickle: bool = True) -> 'SimAFM_Stack':
         '''
         Loads a SimAFM_Stack object from a pickle file. The pickle file must be verified via a digital signature with a public key.
 
@@ -167,63 +180,111 @@ class SimAFM_Stack():
                 The path to the pickle file.
             public_key_filepath (str):
                 The path to your public key file.
+            verify_pickle (bool):
+                Whether or not to verify the pickle file. Default is True. Pickle files may execute arbitrary code when
+                loaded. Verifying the pickle file is recommended if you are loading a pickle file from an outside source.
+                This does not ensure the pickle file is safe, but it does ensure the file has not been tampered with.
         Returns:
             SimAFM_Stack:
                 The loaded SimAFM_Stack object.
         '''
-        # Verify the digital signature of the pickle file.
-        Utilities.Signature.verify_file(pickle_filepath, public_key_filepath)
+        if verify_pickle:
+            if not public_key_filepath:
+                logger.error('Public key file path not provided. Cannot verify pickle file.')
+                raise ValueError('Public key file path not provided. Cannot verify pickle file.')
+            else:
+                # Verify the digital signature of the pickle file.
+                logger.debug(f'Verifying {pickle_filepath}.')
+                Utilities.Signature.verify_file(pickle_filepath, public_key_filepath)
+        else:
+            logger.warning('Pickle verification bypassed by user request. This is not recommended if you are loading a pickle file from an outside source.')
+            warnings.warn('Pickle verification bypassed by user request. This is not recommended if you are loading a pickle file from an outside source.')
 
         # Load the pickle file.
+        logger.debug(f'Loading SimAFM_Stack from {pickle_filepath}.')
         with open(pickle_filepath, 'rb') as file:
             obj = pickle.load(file)
         
+        logger.debug(f'Successfully loaded SimAFM_Stack {id(obj)} from {pickle_filepath}.')
         return obj
     
     def save_compressed_pickle(self,
                                pickle_filepath: str,
-                               private_key_filepath) -> None:
+                               private_key_filepath: str = None,
+                               sign_pickle: bool = True) -> None:
         '''
-        Saves the SimAFM_Stack object to a lzma compressed pickle file. The pickle file is then digitally signed with a private key.
+        Saves the SimAFM_Stack object to an LZMA compressed pickle file. The pickle file can be digitally signed with a private key.
 
         Args:
             pickle_filepath (str):
-                The path to save the lzma compressed pickle file.
+                The path to save the LZMA compressed pickle file.
             private_key_filepath (str):
                 The path to your private key file.
+            sign_pickle (bool):
+                Whether or not to digitally sign the pickle file. Default is True. 
+                Signing the pickle is recommended if you intend to distribute the pickle file.
+
         Returns:
-            None       
+            None
         '''
-        # Save the lzma compressed pickle file.
+        # Save the LZMA compressed pickle file.
+        logger.debug(f'Writing SimAFM_Stack {id(self)} to {pickle_filepath}.')
         with lzma.open(pickle_filepath, 'wb') as file:
             pickle.dump(self, file)
 
-        # Digitally sign the lzma compressed pickle file.
-        Utilities.Signature.sign_file(pickle_filepath, private_key_filepath)        
-        
+        if sign_pickle:
+            if not private_key_filepath:
+                logger.error('Private key file path not provided. Cannot sign pickle file.')
+                raise ValueError('Private key file path not provided. Cannot sign pickle file.')
+            else:
+                # Digitally sign the pickle file.
+                logger.debug(f'Signing {pickle_filepath}.')
+                Utilities.Signature.sign_file(pickle_filepath, private_key_filepath)
+        else:
+            logger.warning('Pickle signature disabled. This is not recommended if you intend to distribute the pickle file.')
+            warnings.warn('Pickle signature disabled. This is not recommended if you intend to distribute the pickle file.')
+
     @classmethod
     def load_compressed_pickle(cls,
                                pickle_filepath: str,
-                               public_key_filepath) -> 'SimAFM_Stack':
+                               public_key_filepath: str = None,
+                               verify_pickle: bool = True) -> 'SimAFM_Stack':
         '''
-        Loads a SimAFM_Stack object from a compressed pickle file. The pickle file must be verified via a digital signature with a public key.
+        Loads a SimAFM_Stack object from an LZMA compressed pickle file. The pickle file can be verified via a digital signature with a public key.
 
         Args:
             pickle_filepath (str):
-                The path to the lzma compressed pickle file.
+                The path to the LZMA compressed pickle file.
             public_key_filepath (str):
                 The path to the public key file.
+            verify_pickle (bool):
+                Whether or not to verify the pickle file. Default is True. 
+                Pickle files may execute arbitrary code when loaded. Verifying the pickle file is recommended 
+                if you are loading a pickle file from an outside source. 
+                This does not ensure the pickle file is safe, but it does ensure the file has not been tampered with.
+
         Returns:
             SimAFM_Stack:
                 The loaded SimAFM_Stack object.
         '''
-        # Verify the digital signature of the lzma compressed pickle file.
-        Utilities.Signature.verify_file(pickle_filepath, public_key_filepath)
+        if verify_pickle:
+            if not public_key_filepath:
+                logger.error('Public key file path not provided. Cannot verify pickle file.')
+                raise ValueError('Public key file path not provided. Cannot verify pickle file.')
+            else:
+                # Verify the digital signature of the pickle file.
+                logger.debug(f'Verifying {pickle_filepath}.')
+                Utilities.Signature.verify_file(pickle_filepath, public_key_filepath)
+        else:
+            logger.warning('Pickle verification bypassed by user request. This is not recommended if you are loading a pickle file from an outside source.')
+            warnings.warn('Pickle verification bypassed by user request. This is not recommended if you are loading a pickle file from an outside source.')
 
-        # Load the lzma file.
+        # Load the LZMA compressed pickle file.
+        logger.debug(f'Loading SimAFM_Stack from {pickle_filepath}.')
         with lzma.open(pickle_filepath, 'rb') as file:
             obj = pickle.load(file)
 
+        logger.debug(f'Successfully loaded SimAFM_Stack {id(obj)} from {pickle_filepath}.')
         return obj
     
     ########################
@@ -238,7 +299,7 @@ class SimAFM_Stack():
             SimAFM_Stack:
                 A deep copy of the SimAFM_Stack object.
         '''
-
+        logger.debug(f'Creating a deep copy of SimAFM_Stack {id(self)} instance.')
         return copy.deepcopy(self)
 
     def shuffle(self) -> None:
@@ -246,6 +307,7 @@ class SimAFM_Stack():
         Shuffles the stack in place.
         '''
         # Generate a random permutation of the indexes and shuffle the stack.
+        logger.debug(f'Shuffling SimAFM_Stack {id(self)}.')
         self._indexes = np.random.permutation(self._indexes)
         self._stack = self._stack[self._indexes]
 
@@ -257,6 +319,7 @@ class SimAFM_Stack():
         Unshuffles the stack in place.
         '''
         # Sort the indexes and unshuffle the stack.
+        logger.debug(f'Unshuffling SimAFM_Stack {id(self)}.')
         self._indexes = np.argsort(self._indexes)
         self._stack = self._stack[self._indexes]
 
@@ -360,6 +423,7 @@ class SimAFM_Stack():
         Returns:
             None
         '''
+        logging.debug(f'Adding {metadata} to SimAFM_Stack {id(self)} metadata.')
         self._metadata.update(metadata)
     
     def remove_metadata(self, *keys: str) -> None:
@@ -373,6 +437,7 @@ class SimAFM_Stack():
             None
         '''
         for key in keys:
+            logging.debug(f'Removing {key} from SimAFM_Stack {id(self) }metadata.')
             self._metadata.pop(key, None)
 
     def get_metadata(self, key: str) -> Optional[Any]:
@@ -386,7 +451,7 @@ class SimAFM_Stack():
             Any:
                 The value of the metadata attribute.
         '''
-
+        logger.debug(f'Retrieving "{key}" from SimAFM_Stack {id(self)} metadata.')
         if key not in self._metadata.keys():
             logger.warning(f'Metadata "{key}" not found. Returning None.')
 
@@ -396,6 +461,7 @@ class SimAFM_Stack():
         '''
         Method for printing all metadata pairs from the metadata attribute.
         '''
+        logger.debug(f'Printing SimAFM_Stack {id(self)} metadata.')
         for key, value in self._metadata.items():
             print(f'{key}: {value}')
 
@@ -413,7 +479,7 @@ def make_grid(boundaries: tuple,
         numpy.ndarray:
             2D numpy.ndarray of pixel coordinates. Shape is (n_pixels_y, n_pixels_x, 2).
             Note: because of the way meshgrid works in combination with matplotlib, the shape is (n_pixels_y, n_pixels_x, 2).
-    '''    
+    '''
     # Unpack the boundaries
     (x_min, x_max), (y_min, y_max) = boundaries
     # Unpack the shape
@@ -443,6 +509,6 @@ def make_radius_array(atom_group: MDA.AtomGroup,
     Returns:
         numpy.ndarray:
             1D numpy.ndarray of Van der Waals radii for each atom in the atom group.
-    '''    
+    '''
     # Map the atom types to the radius dictionary and return numpy array.
     return np.array([*map(radius_dict.get, atom_group.types)])

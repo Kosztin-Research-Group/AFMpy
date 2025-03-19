@@ -1,8 +1,7 @@
 from copy import deepcopy
-import gc
+import logging
 import numpy as np
 import cv2
-import psutil
 from typing import Tuple, Dict
 
 from scipy.integrate import quad
@@ -25,18 +24,11 @@ __all__ = ['center_image', 'center_stack', 'register_image', 'register_stack', '
            'hierarchical_DSC', 'REC', 'IREC', 'validate_autoencoder_params', 'validate_registration_params',
            'default_registration_params', 'default_autoencoder_params']
 
-logger = Utilities.Logging.make_module_logger(__name__)
+logger = logging.getLogger(__name__)
 
-################################
-##### Registration Methods #####
-################################
-
-# Define the registration methods
-registration_methods: Dict[str, int] = {
-    'rigid': StackReg.RIGID_BODY,
-    'affine': StackReg.AFFINE
-}
-
+##########################################
+##### Centering/Registration Methods #####
+##########################################
 def _center_of_geometry(image: np.ndarray,
                         threshold: float = 0.0) -> Tuple[float, float]:
     '''
@@ -103,8 +95,7 @@ def _center_of_mass(image: np.ndarray,
     # Return the center of mass
     return (x_cm, y_cm)
 
-# Define the centering methods
-centering_methods: Dict[str, callable] = {
+CENTERING_METHODS: Dict[str, callable] = {
     'cog': _center_of_geometry,
     'com': _center_of_mass
 }
@@ -152,8 +143,14 @@ def center_image(image: np.ndarray,
     Returns:
         np.ndarray:
             The centered image.
-    '''    
-    center_method = centering_methods[method]
+    '''
+    # Check if the centering method is valid.
+    if method not in CENTERING_METHODS:
+        logger.error(f'Invalid method: {method}. Valid methods are: {list(CENTERING_METHODS.keys())}')
+        raise ValueError(f'Invalid method: {method}. Valid methods are: {list(CENTERING_METHODS.keys())}')
+    
+    # Dispatch the centering method
+    center_method = CENTERING_METHODS[method]
 
     # Get the center of the image
     x_center, y_center = center_method(image, threshold)
@@ -185,11 +182,7 @@ def center_stack(stack: np.ndarray,
     Returns:
         np.ndarray:
             The centered stack.
-    '''
-    # Check if the centering method is valid.
-    if method not in centering_methods:
-        logger.error(f'Invalid method: {method}. Valid methods are: {list(centering_methods.keys())}')
-        raise ValueError(f'Invalid method: {method}. Valid methods are: {list(centering_methods.keys())}')
+    '''       
     # Create an empty stack to hold the centered images
     centered_stack = np.empty_like(stack)
 
@@ -199,6 +192,12 @@ def center_stack(stack: np.ndarray,
 
     # Return the centered stack
     return centered_stack
+
+# Define the registration methods
+REGISTRATION_METHODS: Dict[str, int] = {
+    'rigid': StackReg.RIGID_BODY,
+    'affine': StackReg.AFFINE
+}
 
 def register_image(ref: np.ndarray,
                    mov: np.ndarray,
@@ -218,8 +217,13 @@ def register_image(ref: np.ndarray,
     Returns:
         np.ndarray: The registered image.
     '''
+    # Check if the method is valid
+    if method not in REGISTRATION_METHODS:
+        logger.error(f'Invalid method: {method}. Valid methods are: {list(REGISTRATION_METHODS.keys())}')
+        raise ValueError(f'Invalid method: {method}. Valid methods are: {list(REGISTRATION_METHODS.keys())}')
+
     # Get the registration method
-    registration_method = registration_methods[method]
+    registration_method = REGISTRATION_METHODS[method]
     # Create the stackreg object
     sr = StackReg(registration_method)
     # Register the images
@@ -250,11 +254,6 @@ def register_stack(ref: np.ndarray,
     Returns:
         np.ndarray: The registered stack.
     '''
-    # Check if the method is valid
-    if method not in registration_methods:
-        logger.error(f'Invalid method: {method}. Valid methods are: {list(registration_methods.keys())}')
-        raise ValueError(f'Invalid method: {method}. Valid methods are: {list(registration_methods.keys())}')
-
     # Create an empty stack to hold the registered images
     registered_stack = np.empty_like(stack)
 

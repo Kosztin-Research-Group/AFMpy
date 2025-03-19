@@ -2,7 +2,6 @@ import numpy as np
 from skimage.metrics import structural_similarity as ssim
 
 from AFMpy import REC
-from AFMpy.Utilities import norm
 
 __all__ = ['masked_SSIM', 'registered_SSIM']
 
@@ -27,7 +26,6 @@ def masked_SSIM(img1: np.ndarray,
         float:
             The masked SSIM between the two images.
     '''
-    
     # Calculate the data range
     data_range = np.max([img1,img2])
 
@@ -41,10 +39,10 @@ def masked_SSIM(img1: np.ndarray,
     return np.mean(ssim_image[mask])
 
 def registered_SSIM(ref: np.ndarray,
-                           mov: np.ndarray,
-                           threshold_rel: float = 0.05,
-                           method: str = 'rigid',
-                           **kwargs):
+                    mov: np.ndarray,
+                    threshold_rel: float = 0.05,
+                    method: str = 'rigid',
+                    **kwargs):
     '''
     Calculates the average masked SSIM between two unaligned images.
     First, the images are aligned using the method specified in the method argument.
