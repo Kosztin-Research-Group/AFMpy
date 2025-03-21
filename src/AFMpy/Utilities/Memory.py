@@ -1,11 +1,10 @@
+import logging
 import gc, psutil
 import numpy as np
 
 from tensorflow.keras import backend as K
 
-from AFMpy.Utilities.Logging import make_module_logger
-
-logger = make_module_logger(__name__)
+logger = logging.getLogger(__name__)
 
 __all__ = ['get_memory_usage', 'clear_variables', 'clear_variables_tensorflow']
 

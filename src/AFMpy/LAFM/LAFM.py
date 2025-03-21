@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 import cv2
 from skimage.exposure import rescale_intensity
 from skimage.feature import peak_local_max
@@ -7,7 +8,7 @@ from typing import Tuple
 
 from AFMpy import Utilities
 
-logger = Utilities.Logging.make_module_logger(__name__)
+logger = logging.getLogger(__name__)
 
 __all__ = ['LAFM2D']
 
