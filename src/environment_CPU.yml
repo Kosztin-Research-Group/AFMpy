@@ -1,0 +1,24 @@
+name: AFMpy-CPU
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12.2
+  - numpy
+  - matplotlib
+  - scikit-image
+  - scikit-learn
+  - psutil
+  - pystackreg
+  - mdanalysis
+  - notebook
+  - jupyterlab
+  - nbconvert
+  - nbstripout
+  - ipykernel
+  - ipywidgets
+  - cryptography
+  - pip
+  - pip:
+      - opencv-python
+      - tensorflow==2.16.1

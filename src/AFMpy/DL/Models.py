@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
 from typing import Tuple
+import numpy as np
 from keras import layers, models
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,24 @@ class ConvolutionalAutoencoder(ABC):
         '''
         pass
 
+    def rebuild(self) -> None:
+        '''
+        Rebuild the encoder, decoder, and auteoncoder models.
+        This is used for resetting the state of the model after training.
+
+        Args:
+            None
+        Returns:
+            None
+        '''
+        logger.debug(f'Rebuilding the models for ConvolutionalAutoencoder {id(self)}.')
+        
+        self._encoder = None
+        self._decoder = None
+        self._autoencoder = None
+
+        self._build_models()
+
     def compile(self, optimizer = 'adam', loss = 'mse', **kwargs) -> None:
         '''
         Compile the autoencoder model. Must be called after _build_models().
@@ -48,7 +67,7 @@ class ConvolutionalAutoencoder(ABC):
         logger.debug(f'Compiling the autoencoder model for ConvolutionalAutoencoder {id(self)}.')
         self._autoencoder.compile(optimizer = optimizer, loss = loss, **kwargs)
 
-    def fit(self, x, batch_size = 32, epochs = 25, verbose = 1, **kwargs):
+    def fit(self, x, batch_size = 32, epochs = 25, verbose = 1, **kwargs) -> None:
         '''
         Fit the autoencoder model. Must be called after compile().
 
@@ -69,7 +88,7 @@ class ConvolutionalAutoencoder(ABC):
         logger.debug(f'Fitting the autoencoder model for ConvolutionalAutoencoder {id(self)}.')
         self._autoencoder.fit(x,x, batch_size = batch_size, epochs = epochs, verbose = verbose, **kwargs)
 
-    def encode(self, x, batch_size = 32, verbose = 0, **kwargs):
+    def encode(self, x, batch_size = 32, verbose = 0, **kwargs) -> np.ndarray:
         '''
         Encode the input data.
 
@@ -89,7 +108,7 @@ class ConvolutionalAutoencoder(ABC):
         logger.debug(f'Encoding data with ConvolutionalAutoencoder {id(self)}.')
         return self._encoder.predict(x, batch_size = batch_size, verbose = verbose, **kwargs)
     
-    def decode(self, z, batch_size = 32, verbose = 0, **kwargs):
+    def decode(self, z, batch_size = 32, verbose = 0, **kwargs) -> np.ndarray:
         '''
         Decode the some encoded data.
         
@@ -109,7 +128,7 @@ class ConvolutionalAutoencoder(ABC):
         logger.debug(f'Decoding data with ConvolutionalAutoencoder {id(self)}.')
         return self._decoder.predict(z, batch_size = batch_size, verbose = verbose, **kwargs)
     
-    def reconstruct(self, x, batch_size = 32, verbose = 0, **kwargs):
+    def reconstruct(self, x, batch_size = 32, verbose = 0, **kwargs) -> np.ndarray:
         '''
         Reconstruct the input data.
 

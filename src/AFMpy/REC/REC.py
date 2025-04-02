@@ -2,7 +2,7 @@ from copy import deepcopy
 import logging
 import numpy as np
 import cv2
-from typing import Tuple, Dict
+from typing import Dict, List, Tuple
 
 from scipy.integrate import quad
 from scipy.stats import gaussian_kde
@@ -15,13 +15,10 @@ from sklearn.metrics.pairwise import euclidean_distances
 from pystackreg import StackReg
 
 from AFMpy.DL import Models, Losses
-from AFMpy.LAFM import LAFM2D
 from AFMpy import SSIM, Stack, Utilities
 
-# __all__ = ['center_image', 'center_stack', 'register_image', 'register_stack', 'local_scaled_affinity',
-#            'local_scaled_distance','affinity_refinement', 'calculate_LFV', 'spectral_cluster', 'DSC', 
-#            'hierarchical_DSC', 'REC', 'IREC', 'validate_autoencoder_params', 'validate_registration_params',
-#            'default_registration_params', 'default_autoencoder_params']
+__all__ = ['center_image', 'center_image_stack', 'register_image', 'register_image_stack', 'DSC', 'REC', 'IREC',
+           'hierarchical_DSC']
 
 logger = logging.getLogger(__name__)
 
@@ -164,9 +161,9 @@ def center_image(image: np.ndarray,
     # Return the centered image
     return centered_image
 
-def center_stack(stack: np.ndarray,
-                 method: str = 'cog',
-                 threshold: float = 0.0) -> np.ndarray:
+def center_image_stack(stack: np.ndarray,
+                       method: str = 'cog',
+                       threshold: float = 0.0) -> np.ndarray:
     '''
     Centers a stack of images using a given method.
 
@@ -220,9 +217,9 @@ def register_image(ref: np.ndarray,
     # Return the registered image
     return registered_image
 
-def register_stack(ref: np.ndarray,
-                   stack: np.ndarray,
-                   sr: StackReg) -> np.ndarray:
+def register_image_stack(ref: np.ndarray,
+                         image_stack: np.ndarray,
+                         sr: StackReg) -> np.ndarray:
     '''
     Registers a stack of images to a reference image.
 
@@ -237,10 +234,10 @@ def register_stack(ref: np.ndarray,
         np.ndarray: The registered stack.
     '''
     # Create an empty stack to hold the registered images
-    registered_stack = np.empty_like(stack)
+    registered_stack = np.empty_like(image_stack)
 
     # Register each image in the stack
-    for i, image in enumerate(stack):
+    for i, image in enumerate(image_stack):
         registered_stack[i] = register_image(ref, image, sr = sr)
 
     # Return the registered stack
@@ -390,7 +387,6 @@ def calculate_LFV(image_stack: np.ndarray,
 
     # Fit the autoencoder
     cae.fit(image_stack)
-    # autoencoder.fit(input_data, input_data, epochs = num_epochs, batch_size = batch_size, verbose = verbose)
 
     # Get the latent vector representation
     lfvs = cae.encode(image_stack)
@@ -427,9 +423,9 @@ def DSC(input_stack: Stack.Stack,
         cae: Models.ConvolutionalAutoencoder,
         n_clusters: int = 2,
         k_neighbors: int = 7,
-        **kwargs) -> np.ndarray:
+        **kwargs) -> List[Stack.Stack]:
     '''
-    Applies Deep Spectral Clustering to a stack of input images.
+    Applies Deep Spectral Clustering to an input Stack.
 
     Args:
         stack (Stack.Stack):
@@ -437,14 +433,14 @@ def DSC(input_stack: Stack.Stack,
         cae (Models.ConvolutionalAutoencoder):
             The convolutional autoencoder to use for calculating the latent feature vectors.
         n_clusters (int):
-            The number of clusters to create.
+            The number of clusters to create. Default is 2.
         k_neighbors (int):
             The number of nearest neighbors to consider for scaling the sigma values of the Locally Scaled 
-            Affinity Matrix.
+            Affinity Matrix. Default is 7.
         **kwargs:
-            Keyword arguments to pass to AFM.REC.spectral_cluster().
+            Keyword arguments. Passed to spectral_cluster function.
     Returns:
-        np.ndarray: The cluster labels for the stack of images.
+        List[Stack.Stack]: A list of AFMpy Stack objects. Each stack is a conformational cluster of the input stack.
     '''
     # Extract the images from the stack
     images = input_stack.stack
@@ -473,8 +469,361 @@ def DSC(input_stack: Stack.Stack,
                                     indexes = input_stack.indexes[bicluster]) for bicluster in bicluster_labels]
     
     # Return the clustered stacks
+    logger.debug(f'Returning {n_clusters} DSC clustered stacks.')
     return clustered_stacks
 
+def REC(input_stack: Stack.Stack,
+        cae: Models.ConvolutionalAutoencoder,
+        sr: StackReg = StackReg(StackReg.RIGID_BODY),
+        reference_index: int = 0,
+        n_clusters: int = 2,
+        k_neighbors: int = 7,
+        **kwargs) -> List[Stack.Stack]:
+    '''
+    Applies Registration and Clustering to an input Stack.
+    
+    Args:
+        input_stack (Stack.Stack):
+            The AFMpy Stack object containing the images to cluster.
+        cae (Models.ConvolutionalAutoencoder):
+            The convolutional autoencoder to use for calculating the latent feature vectors.
+        sr (StackReg):
+            The StackReg object to use for registration. Default is StackReg(StackReg.RIGID_BODY).
+        reference_index (int):
+            The index of the reference image to use for registration. Default is 0.
+        n_clusters (int):
+            The number of clusters to create. Default is 2.
+        k_neighbors (int):
+            The number of nearest neighbors to consider for scaling the sigma values of the Locally Scaled 
+            Affinity Matrix. Default is 7.
+        **kwargs:
+            Keyword arguments. Passed to spectral_cluster function.
+    '''
+    # Extract the images from the stack
+    input_images = input_stack.stack
+    # Center the stack of images.
+    centered_images = center_image_stack(input_images, method = 'cog')
+    # Register the image stack according to the reference index
+    registered_images = register_image_stack(centered_images[reference_index], centered_images, sr)
+
+    # Expand the dimensions of the images so they have the shape (num_images, height, width, channels)
+    registered_images = np.expand_dims(registered_images, axis = -1)
+
+    # Normalize the images.
+    registered_images_norm = Utilities.norm(registered_images)
+
+    # Calculate the latent feature vectors
+    latent_vectors = calculate_LFV(registered_images_norm, cae)
+
+    # Generate the affinity matrix from the latent vectors with locally scaled affinity
+    affinity_matrix = local_scaled_affinity(latent_vectors, k_neighbors = k_neighbors)
+
+    # Perform spectral clustering
+    cluster_labels = spectral_cluster(affinity_matrix, n_clusters, **kwargs)
+
+    # Convert the cluster labels to a list of boolean arrays: one for each cluster
+    bicluster_labels = np.array([np.where(cluster_labels == i, True, False) for i in range(n_clusters)])
+
+    # Create stack objects for each cluster
+    clustered_stacks = [Stack.Stack(registered_images[bicluster],
+                                    resolution = input_stack.resolution,
+                                    indexes = input_stack.indexes[bicluster]) for bicluster in bicluster_labels]
+    
+    # Return the registered clusters
+    logger.debug(f'Returning {n_clusters} REC clustered stacks.')
+    return clustered_stacks
+
+def IREC(input_stack: Stack.Stack,
+         cae: Models.ConvolutionalAutoencoder,
+         sr: StackReg = StackReg(StackReg.RIGID_BODY),
+         reference_index: int = 0,
+         n_clusters: int = 2,
+         k_neighbors: int = 7,
+         max_iterations: int = 10,
+         **kwargs) -> List[Stack.Stack]:
+    '''
+    Applies Iterative Registration and Clustering to an input Stack.
+
+    Args:
+        input_stack (Stack.Stack):
+            The AFMpy Stack object containing the images to cluster.
+        cae (Models.ConvolutionalAutoencoder):
+            The convolutional autoencoder to use for calculating the latent feature vectors.
+        sr (StackReg):
+            The StackReg object to use for registration. Default is StackReg(StackReg.RIGID_BODY).
+        reference_index (int):
+            The index of the reference image to use for registration. Default is 0.
+        n_clusters (int):
+            The number of clusters to create. Default is 2.
+        k_neighbors (int):
+            The number of nearest neighbors to consider for scaling the sigma values of the Locally Scaled 
+            Affinity Matrix. Default is 7.
+        max_iterations (int):
+            The maximum number of iterations to perform for the iterative clustering. Default is 10.
+        **kwargs:
+            Keyword arguments. Passed to spectral_cluster function.
+    '''
+    # Inital Registration and Clustering
+    # Extract the images from the stack
+    input_images = input_stack.stack
+    # Center the stack of images.
+    centered_images = center_image_stack(input_images, method = 'cog')
+    # Register the image stack according to the reference index
+    registered_images = register_image_stack(centered_images[reference_index], centered_images, sr)
+    # Expand the dimensions of the images so they have the shape (num_images, height, width, channels) and normalize
+    registered_images_norm = Utilities.norm(np.expand_dims(registered_images, axis = -1))
+    # Calculate the latent feature vectors
+    latent_vectors = calculate_LFV(registered_images_norm, cae)
+    # Generate the affinity matrix from the latent vectors with locally scaled affinity
+    affinity_matrix = local_scaled_affinity(latent_vectors, k_neighbors = k_neighbors)
+    # Perform spectral clustering
+    cluster_labels = spectral_cluster(affinity_matrix, n_clusters, **kwargs)
+    # Convert the cluster labels to a list of boolean arrays: one for each cluster
+    bicluster_labels = np.array([np.where(cluster_labels == i, True, False) for i in range(n_clusters)])
+    # Get the silhouette samples for each cluster.
+    sil_samples = silhouette_samples(1 - affinity_matrix, cluster_labels, metric = 'precomputed')
+    # Determine the optimal reference images for each cluster by maximized silhouette score
+    old_reference_indexes = np.argmax(sil_samples * bicluster_labels, axis = 1)
+    # Save the old reference indexes for traceback
+    past_indexes = [old_reference_indexes]
+    # Initialize the lst of converged clusters
+    converged = np.full(n_clusters, False)
+
+    logger.info('Initial REC complete.')
+    logger.info(f'Initial Reference Indexes: {old_reference_indexes}')
+    # Begin the iterative process
+    for iteration in range(max_iterations):
+        logger.info(f'Beginning iteration {iteration + 1} of IREC.')
+
+        # Initialize the list of references for this iteration
+        iteration_indexes = []
+
+        # Register and cluster with respect to each reference index.
+        for k, reference_index in enumerate(old_reference_indexes):
+            
+            # If the cluster has converged, skip it
+            if converged[k]:
+                logger.info(f'Cluster {k} has converged. Skipping.')
+                iteration_indexes.append(reference_index)
+                continue
+            
+            logger.debug(f'Applying REC to cluster {k} with reference index {reference_index}.')
+            # Register the image stack according to the reference index
+            registered_images = register_image_stack(centered_images[reference_index], centered_images, sr)
+            # Expand the dimensions of the images so they have the shape (num_images, height, width, channels) and normalize
+            registered_images_norm = Utilities.norm(np.expand_dims(registered_images, axis = -1))
+            # Reset the state of the CAE because the weights are fit to the previous iteration.
+            cae.rebuild()
+            # Calculate the latent feature vectors
+            latent_vectors = calculate_LFV(registered_images_norm, cae)
+            # Generate the affinity matrix from the latent vectors with locally scaled affinity
+            affinity_matrix = local_scaled_affinity(latent_vectors, k_neighbors = k_neighbors)
+            # Perform spectral clustering
+            cluster_labels = spectral_cluster(affinity_matrix, n_clusters, **kwargs)
+            # Convert the cluster labels to a list of boolean arrays: one for each cluster
+            bicluster_labels = np.array([np.where(cluster_labels == i, True, False) for i in range(n_clusters)])
+            # Get the silhouette samples for each cluster.
+            sil_samples = silhouette_samples(1 - affinity_matrix, cluster_labels, metric = 'precomputed')
+            # Determine which cluster contains the reference index.
+            which_cluster = bicluster_labels[:, reference_index]
+
+            # Determine the optimal reference images for each cluster by maximized silhouette score
+            refined_references = np.argmax(sil_samples * bicluster_labels, axis = 1)
+            # Determine which refined reference belongs to this cluster
+            new_reference_index = refined_references[which_cluster][0]
+
+            # Add the new reference index to the iteration indexes
+            iteration_indexes.append(new_reference_index)
+
+        # Check for matches in the past indexes
+        logger.info(f'Iteration indexes: {iteration_indexes}')
+        matches = np.any(np.array(iteration_indexes) == np.array(past_indexes), axis = 0)
+        
+        converged = np.logical_or(converged, matches)
+        logger.info(f'Converged clusters: {converged}')
+
+        # Update the past indexes and the references used for the previous iteration step
+        past_indexes.append(iteration_indexes)
+        old_reference_indexes = iteration_indexes
+
+        # Check if all clusters have converged, break the loop
+        if np.all(converged):
+            logger.info('All clusters have converged.')
+            break
+
+        # Check if the maximum iterations is met, break the loop
+        if iteration == max_iterations - 1:
+            logger.warning('Maximum iterations reached. Clusters may not be optimally converged.')
+            break
+        
+    logger.info('Executing final registration and clustering.')
+    # Register and cluster with respect to the converged indexes
+    converged_stacks = []
+    for reference_index in old_reference_indexes:
+        # Register the image stack according to the reference index
+        registered_images = register_image_stack(centered_images[reference_index], centered_images, sr)
+        # Expand the dimensions of the images so they have the shape (num_images, height, width, channels) and normalize
+        registered_images_norm = Utilities.norm(np.expand_dims(registered_images, axis = -1))
+        # Reset the state of the CAE because the weights are fit to the previous iteration.
+        cae.rebuild()
+        # Calculate the latent feature vectors
+        latent_vectors = calculate_LFV(registered_images_norm, cae)
+        # Generate the affinity matrix from the latent vectors with locally scaled affinity
+        affinity_matrix = local_scaled_affinity(latent_vectors, k_neighbors = k_neighbors)
+        # Perform spectral clustering
+        cluster_labels = spectral_cluster(affinity_matrix, n_clusters, **kwargs)
+        # Convert the cluster labels to a list of boolean arrays: one for each cluster
+        bicluster_labels = np.array([np.where(cluster_labels == i, True, False) for i in range(n_clusters)])
+        # Determine which cluster the registration reference is in
+        which_cluster = bicluster_labels[:, reference_index]
+
+        # Create a stack object for the converged cluster
+        converged_stack = Stack.Stack(registered_images[bicluster_labels[which_cluster][0]],
+                                      resolution = input_stack.resolution,
+                                      indexes = input_stack.indexes[bicluster_labels[which_cluster][0]])
+        # Append the converged stack to the list of converged stacks
+        converged_stacks.append(converged_stack)
+    
+    # Return the converged stacks
+    logger.debug(f'Returning {n_clusters} IREC clustered stacks.')
+    return converged_stacks
+
+def hierarchical_DSC(input_stack: Stack.Stack,
+                     cae: Models.ConvolutionalAutoencoder,
+                     k_neighbors: int = 7,
+                     max_iterations: int = 5,
+                     lafm_target_resolution: Tuple[int, int] = None,
+                     lafm_sigma: float = 3.0,
+                     distinct_cluster_threshold: float = 0.5,
+                     stability_threshold = 0.85,
+                     min_cluster_size = 150,
+                     **kwargs) -> List[Stack.Stack]:
+    '''
+    Applies Hierarchical Deep Spectral Clustering to a stack of images.
+
+    Args:
+        input_stack (Stack.Stack):
+            The AFMpy Stack object containing the images to cluster.
+        cae (Models.ConvolutionalAutoencoder):
+            The convolutional autoencoder to use for calculating the latent feature vectors.
+        k_neighbors (int):
+            The number of nearest neighbors to consider for scaling the sigma values of the Locally Scaled 
+            Affinity Matrix.
+        max_iterations (int):
+            The maximum number of iterations to perform for the hierarchical clustering.
+        lafm_target_resolution (Tuple[int, int]):
+            The target resolution to use for the LAFM2D function. If None, 3x the resolution of the input images
+            is used.
+        lafm_sigma (float):
+            The sigma value to use for the LAFM2D function. Default is 3.0 pixels.
+        stability_threshold (float):
+            The threshold for the stability of the clusters. If the SSIM between the LAFMs of the 2 and 3 clusters
+            is above this threshold, the clusters are considered stable. Default is 0.9.
+        min_cluster_size (int):
+            The minimum size of a cluster to be considered valid. Default is 150.
+        **kwargs:
+            Keyword arguments. Passed to spectral_cluster function.
+    Returns:
+        List[Stack.Stack]: A list of AFMpy Stack objects. Each stack is a conformational cluster of the input stack.
+    '''
+    # Extract the images from the stack
+    images = input_stack.stack
+
+    # Expand the dimensions of the images so they have the shape (num_images, height, width, channels)
+    images = np.expand_dims(images, axis = -1)
+
+    # Normalize the images.
+    images = Utilities.norm(images)
+
+    # Calculate the latent feature vectors
+    latent_vectors = calculate_LFV(images, cae)
+
+    # Generate the affinity matrix from the latent vectors with locally scaled affinity
+    affinity_matrix = local_scaled_affinity(latent_vectors, k_neighbors = k_neighbors)
+
+    output_clusters = []
+    # Perform hierarchical spectral clustering on the affinity matrix:
+    for iteration in range(max_iterations):
+        # Perform 2-Spectral Clustering
+        cluster_labels_2 = spectral_cluster(affinity_matrix, 2, **kwargs)
+        bicluster_labels_2 = np.array([np.where(cluster_labels_2 == i, True, False) for i in range(2)])
+        clustered_stacks_2 = [Stack.Stack(images[bicluster],
+                                          resolution = input_stack.resolution,
+                                          indexes = input_stack.indexes[bicluster]) for bicluster in bicluster_labels_2]
+        clustered_lafms_2 = np.array([clustered_stack.calc_LAFM_image(target_resolution = lafm_target_resolution,
+                                                                      sigma = lafm_sigma) for clustered_stack in clustered_stacks_2])
+        # Calculate the SSIM between the LAFMs
+        ssim_2 = SSIM.masked_SSIM(*clustered_lafms_2, threshold_rel = 0.05)
+
+        if ssim_2 > distinct_cluster_threshold:
+            # If the SSIM is above the threshold, concatenate the clusters and break the loop.
+            logger.info(f'2-Clustering found highly similar clusters. Exiting at iteration {iteration}.')
+            concat = clustered_stacks_2[0].concatenate(clustered_stacks_2[1])
+            output_clusters.append(concat)
+            break
+
+        # Perform the 3-Spectral Clustering
+        cluster_labels_3 = spectral_cluster(affinity_matrix, 3, **kwargs)
+        bicluster_labels_3 = np.array([np.where(cluster_labels_3 == i, True, False) for i in range(3)])
+        clustered_stacks_3 = [Stack.Stack(images[bicluster],
+                                          resolution = input_stack.resolution,
+                                          indexes = input_stack.indexes[bicluster]) for bicluster in bicluster_labels_3]
+        clustered_lafms_3 = np.array([clustered_stack.calc_LAFM_image(target_resolution = lafm_target_resolution,
+                                                                      sigma = lafm_sigma) for clustered_stack in clustered_stacks_3])
+
+        # Calculate the SSIM between the LAFMs
+        pairs = [(0,1), (0,2), (1,2)]
+        ssim_3 = np.array([SSIM.masked_SSIM(clustered_lafms_3[pair[0]],
+                                            clustered_lafms_3[pair[1]],
+                                            threshold_rel = 0.05) for pair in pairs])
+        
+        # Calculate the stability of each 2-cluster
+        stability_ssims = np.array([[SSIM.masked_SSIM(lafm2, lafm3, threshold_rel = 0.05) for lafm2 in clustered_lafms_2] for lafm3 in clustered_lafms_3])
+
+        # Determine which clusters are stable
+        which_stable = np.logical_or(*(stability_ssims > stability_threshold))
+
+        # If none of the clusters are stable, break the loop
+        if not np.any(which_stable):
+            logger.info(f'3-Clustering found no stable clusters. Exiting at iteration {iteration}.')
+            concat = clustered_stacks_2[0].concatenate(clustered_stacks_2[1])
+            output_clusters.append(concat)
+            break
+
+        # If all the clusters are stable, break the loop
+        if np.all(which_stable):
+            logger.info(f'3-Clustering found all clusters stable. Exiting at iteration {iteration}.')
+            for stack in clustered_stacks_2:
+                output_clusters.append(stack)
+            break
+
+        # Get the stable cluster and append it to the output clusters
+        stable_cluster = clustered_stacks_2[which_stable]
+        output_clusters.append(stable_cluster)
+
+        # Get the unstable clusters    
+        unstable_cluster = clustered_stacks_2[~which_stable]
+
+        # Get the indexes of the unstable cluster, and update the affinity matrix to only include only the unstable cluster
+        unstable_indexes = unstable_cluster.indexes
+
+        # If the unstable cluster is smaller than the minimum cluster size, break the loop and append the cluster to the output clusters
+        if unstable_indexes.shape[0] < min_cluster_size:
+            logger.info(f'Unstable cluster is smaller than minimum cluster size. Exiting at iteration {iteration}.')
+            output_clusters.append(unstable_cluster)
+            break
+
+        # If the maximum iterations is met, break the loop and append the cluster to the output clusters.
+        if iteration == max_iterations - 1:
+            logger.warning(f'Maximum iterations reached. Appending final unstable cluster to output. Exiting at iteration {iteration}.')
+            output_clusters.append(unstable_cluster)
+            break
+
+        affinity_matrix = affinity_matrix[unstable_indexes][:, unstable_indexes]
+
+    # Return the output clusters containing all stable clusters.
+    return output_clusters
+        
 # def hierarchical_DSC(image_stack: np.ndarray,
 #                      k_neighbors: int = 7,
 #                      max_iterations: int = 5,
@@ -636,266 +985,3 @@ def DSC(input_stack: Stack.Stack,
 #         return output_indexes, traceback
 #     else:
 #         return output_indexes
-
-# # Default parameters for the centering and registration functions
-# default_registration_params: Dict[str, any] = {
-#     'center_method': 'cog',
-#     'centering_threshold': 0.0,
-#     'registration_method': 'rigid'
-# }
-
-# def validate_registration_params(registration_params: Dict[str, any]) -> None:
-#     '''
-#     Validates the supplied registration parameters. Raises an exception if any are invalid.
-
-#     Args:
-#         registration_params (Dict[str, any]):
-#             The registration parameters to validate.
-#     Returns:
-#         None
-#     '''
-#     # Check each registration parameter against the default parameters
-#     for key, value in registration_params.items():
-#         # Check if the key is a valid parameter
-#         if key not in registration_params:
-#             logger.error(f'Invalid registration parameter: {key}.')
-#             raise ValueError(f'Invalid registration parameter: {key} is not a valid parameter.')
-
-#         # Check if the value is the correct type
-#         expected_type = type(registration_params[key])
-#         if not isinstance(value, expected_type) and value is not None:
-#             logger.error(f'Invalid parameter type for {key}. Expected {expected_type}, got {type(value)}.')
-#             raise ValueError(f'Invalid parameter type for {key}. Expected {expected_type}, got {type(value)}.')
-
-#     # Log that all parameters are valid
-#     logger.debug('All supplied registration parameters are valid.')
-
-# def REC(image_stack: np.ndarray,
-#         reference_index: int = 0,
-#         n_clusters: int = 2,
-#         k_neighbors: int = 7,
-#         registration_params: Dict[str, any] = None,
-#         autoencoder_params: Dict[str, any] = None,
-#         return_registered_stack: bool = False,
-#         return_refined_references: bool = False,
-#         **SC_kwargs) -> np.ndarray:
-#     '''
-#     Applies the Registration and Clutsering (REC) algorithm to a stack of images.
-    
-#     Args:
-#         image_stack (np.ndarray):
-#             The stack of images to process.
-#         reference_index (int):
-#             The index of the reference image to use for registration.
-#         n_clusters (int):
-#             The number of clusters to create.
-#         k_neighbors (int):
-#             The number of nearest neighbors to consider for scaling the sigma values of the Locally Scaled 
-#             Affinity Matrix.
-#         registration_params (Dict[str, any]):
-#             The registration parameters to use. If None, the default_registration_params are used.
-#             See AFM.REC.default_registration_params for the default parameters.
-#         autoencoder_params (Dict[str, any]):
-#             The autoencoder parameters to use for the DSC function. If None, the default_autoencoder_params are used.
-#             See AFM.REC.default_autoencoder_params for the default parameters.
-#         return_registered_stack (bool):
-#             Whether to return the registered stack in addition to the cluster labels.
-#         return_refined_references (bool):
-#             Whether to return the Silhouette Score refined reference indexes in addition to the cluster labels.
-#         **SC_kwargs:
-#             Spectral Clustering Keyword arguments to be passed to the DSC function.
-
-#     Returns:
-#         list: A list containing the cluster labels, and optionally the registered stack and refined reference indexes.
-#     '''
-#     # Get the registration parameters
-#     params = deepcopy(default_registration_params)
-#     if registration_params is not None:
-#         params.update(registration_params)
-    
-#     # Validate the registration parameters
-#     validate_registration_params(params)
-
-#     # Get the registration parameters
-#     center_method = params.get('center_method')
-#     centering_threshold = params.get('centering_threshold')
-#     registration_method = params.get('registration_method')
-
-#     # Center the stack
-#     centered_stack = center_stack(image_stack, method=center_method, threshold=centering_threshold)
-
-#     # Register the stack
-#     registered_stack = register_stack(centered_stack[reference_index], centered_stack, method=registration_method)
-
-#     output = []
-
-#     # Perform Deep Spectral Clustering
-#     cluster_labels, affinity_matrix = DSC(registered_stack, n_clusters=n_clusters, k_neighbors=k_neighbors, autoencoder_params=autoencoder_params, return_affinity=True, **SC_kwargs)
-#     # Put the cluster labels into a boolean array
-#     bicluster_labels = np.array([np.where(cluster_labels == i,True,False) for i in range(n_clusters)])
-    
-#     # Append the cluster labels to the output
-#     output.append(cluster_labels)
-
-#     # Add the registered stack if requested
-#     if return_registered_stack:
-#         # Append the registered stack to the output
-#         output.append(registered_stack)
-
-#     # Add the refined references if requested
-#     if return_refined_references:
-#         # Calculate the silhouette scores per image.
-#         sil_samples = silhouette_samples(1 - affinity_matrix, cluster_labels, metric = 'precomputed')
-
-#         # Determine the optimal reference images for each cluster by maximized silhouette score
-#         refined_reference_indexes = np.argmax(sil_samples * bicluster_labels, axis = 1)
-
-#         output.append(refined_reference_indexes)
-
-#     # Return the cluster labels
-#     return output
-
-# def IREC(image_stack: np.ndarray,
-#          reference_index: int = 0,
-#          n_clusters: int = 2,
-#          k_neighbors: int = 7,
-#          max_iterations: int = 10,
-#          registration_params: Dict[str, any] = None,
-#          autoencoder_params: Dict[str, any] = None,
-#          return_labels: bool = False,
-#          **SC_kwargs):
-#     '''
-#     Applies Iterative Registration and Clustering (IREC) algorithm to a stack of images.
-    
-#     Args:
-#         image_stack (np.ndarray):
-#             The stack of images to process.
-#         reference_index (int):
-#             The index of the initial reference image to use for registration.
-#         n_clusters (int):
-#             The number of refined clusters to create.
-#         k_neighbors (int):
-#             The number of nearest neighbors to consider for scaling the sigma values of the Locally Scaled 
-#             Affinity Matrix.
-#         max_iterations (int):
-#             The maximum number of iterations to perform.
-#         registration_params (Dict[str, any]):
-#             The registration parameters to use. If None, the default_registration_params are used.
-#             See AFM.REC.default_registration_params for the default parameters.
-#         autoencoder_params (Dict[str, any]):
-#             The autoencoder parameters to use for the DSC function. If None, the default_autoencoder_params are used.
-#             See AFM.REC.default_autoencoder_params for the default parameters.
-#         return_labels (bool):
-#             Whether to return the cluster labels in addition to the registered stack.
-#         **SC_kwargs:
-#             Spectral Clustering Keyword arguments to be passed to the DSC function.
-
-#     Returns:
-#         list: A list containing n registered clustered stacks of images.
-#     '''
-#     # Log that IREC is being performed.
-#     logger.info(f'Performing IREC with {n_clusters} clusters.')
-
-#     # Perform the initial REC to get refined indexes
-#     logger.info(f'Performing initial REC with reference index {reference_index}')
-#     _, old_reference_indexes = REC(image_stack, reference_index, n_clusters, k_neighbors=k_neighbors,
-#                                    registration_params=registration_params, autoencoder_params=autoencoder_params,
-#                                    return_refined_references = True, **SC_kwargs)
-#     logger.info(f'Initial REC complete. Initial cluster reference indexes: {old_reference_indexes}')
-
-#     # Initialize the past indexes array and convergence flags
-#     past_indexes = [old_reference_indexes]
-#     converged = np.full(n_clusters, False)
-
-#     # Begin the iterative process
-#     for iteration in range(max_iterations):
-
-#         logger.info(f'Beginning iteration {iteration + 1}.')
-
-#         # Initialize the iteration indexes
-#         iteration_indexes = []
-
-#         # Loop over each rerference index
-#         for k, reference_index in enumerate(old_reference_indexes):
-            
-#             # Check if the cluster has converged
-#             if converged[k]:
-
-#                 # If the cluster has converged, skip it
-#                 logger.info(f'Cluster {k} has converged. Skipping.')
-#                 iteration_indexes.append(reference_index)       
-#                 continue
-
-#             # Call REC with the reference
-#             logger.info(f'Performing REC with reference index {reference_index}')
-#             cluster_labels, new_reference_indexes = REC(image_stack, reference_index, n_clusters,
-#                                                         k_neighbors=k_neighbors,
-#                                                         registration_params=registration_params,
-#                                                         autoencoder_params=autoencoder_params,
-#                                                         return_refined_references = True, **SC_kwargs)
-            
-#             bicluster_labels = np.array([np.where(cluster_labels == i,True,False) for i in range(n_clusters)])
-
-#             # Determine which cluster the reference image belongs to
-#             which_cluster = bicluster_labels[:,reference_index]
-
-#             # Get the refined inddex from that cluster
-#             refined_index = new_reference_indexes[which_cluster][0]
-
-#             # Add the new reference index to the iteration indexes
-#             logger.info(f'Iteration: {iteration}. Cluster {k} refined index: {refined_index}')
-#             iteration_indexes.append(refined_index)
-
-#         # Check for matches in the past indexes
-#         logger.info(f'Iteration indexes: {iteration_indexes}')
-#         matches = np.any(np.array(iteration_indexes) == np.array(past_indexes), axis = 0)
-        
-#         converged = np.logical_or(converged, matches)
-#         logger.info(f'Converged clusters: {converged}')
-
-#         # Update the past indexes and the references used for the previous iteration step
-#         past_indexes.append(iteration_indexes)
-#         old_reference_indexes = iteration_indexes
-
-#         # Check if all clusters have converged, break the loop
-#         if np.all(converged):
-#             logger.info(f'All clusters have converged at iteration {iteration}. Exiting iterative process.')
-#             break
-
-#         if iteration == max_iterations - 1:
-#             logger.warning('Maximum iterations reached. Exiting iterative process.')
-
-#     # Clear some memory
-#     Utilities.clear_variables_tensorflow(old_reference_indexes, converged, iteration_indexes, cluster_labels, 
-#                                          bicluster_labels, which_cluster, refined_index, matches, units = 'mb')
-    
-#     # With the refined indexes, perform the final REC
-#     logger.info('Performing final REC with refined reference indexes.')
-#     registered_clustered_stacks = []
-#     registered_clustered_labels = []
-
-#     # Looping over each refined reference index
-#     for reference_index in past_indexes[-1]:
-#         logger.info(f'Performing REC with reference index {reference_index}')
-#         # Applying Registration and Clustering
-#         cluster_labels, registered_stack = REC(image_stack, reference_index, n_clusters,
-#                                                         k_neighbors=k_neighbors,
-#                                                         registration_params=registration_params,
-#                                                         autoencoder_params=autoencoder_params,
-#                                                         return_registered_stack = True, **SC_kwargs)
-
-#         # Determining which cluster the reference image belongs to
-#         bicluster_labels = np.array([np.where(cluster_labels == i,True,False) for i in range(n_clusters)])
-#         which_cluster = bicluster_labels[:,reference_index]
-
-#         REC_labels = bicluster_labels[which_cluster][0]
-
-#         # Appending the cluster labels
-#         registered_clustered_stacks.append(registered_stack[REC_labels])
-#         registered_clustered_labels.append(REC_labels)
-
-#     # Return the registered clustered stacks and optionally the cluster labels
-#     if return_labels:
-#         return registered_clustered_stacks, registered_clustered_labels
-#     else:
-#         return registered_clustered_stacks

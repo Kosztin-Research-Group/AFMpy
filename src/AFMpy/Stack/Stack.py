@@ -344,6 +344,47 @@ class Stack():
         # Set the shuffled metadata attribute to False.
         self.add_metadata(shuffled = False)
 
+    def concatenate(self,
+                    other: 'Stack',
+                    **metadata: Any) -> 'Stack':
+        '''
+        Concatenate another SimAFM_Stack object to the current SimAFM_Stack object.
+        Automatically checks if the stacks are compatible, and updates the metadata with concatenated = True.
+        Args:
+            other (SimAFM_Stack):
+                The SimAFM_Stack object to concatenate.
+            **metadata (Any):
+                Key-value pairs of metadata to add to the metadata attribute.
+                Should be used to add metadata related to the concatenation event.
+        Returns:
+            The concatenated SimAFM_Stack object.
+        '''
+        # Check if the other object is a SimAFM_Stack object.
+        if not isinstance(other, Stack):
+            logger.error('The object to concatenate is not a SimAFM_Stack object.')
+            raise TypeError('The object to concatenate is not a SimAFM_Stack object.')
+        # Check if the other object has the same resolution.
+        if self._resolution != other.resolution:
+            logger.error('The resolution of the two SimAFM_Stack objects are not the same.')
+            raise ValueError('The resolution of the two SimAFM_Stack objects are not the same.')
+        
+        # Concatenate the two stacks.
+        logger.debug(f'Concatenating SimAFM_Stack {id(self)} and SimAFM_Stack {id(other)}.')
+        self._stack = np.concatenate((self._stack, other.stack), axis = 0)
+        self._indexes = np.concatenate((self._indexes, other.indexes), axis = 0)
+
+        # Update the shape attribute.
+        self._shape = self._stack.shape
+
+        # Add metadata to the metadata attribute.
+        self.add_metadata(**metadata)
+        self.add_metadata(concatenated = True)
+
+        # Update the processed image attributes.
+        self._mean_image = None
+        self._LAFM_image = None
+        return self
+
     ######################
     ##### Properties #####
     ######################
