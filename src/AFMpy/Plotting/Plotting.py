@@ -34,6 +34,17 @@ def configure_formatting() -> None:
     Returns:
         None
     '''
+
+    try:
+        from IPython import get_ipython
+    except ImportError:
+        get_ipython = None
+
+    ip = get_ipython() if get_ipython else None
+    if ip is not None:
+        ip.run_line_magic("matplotlib", "inline")
+        ip.run_line_magic("config", "InlineBackend.figure_format = 'svg'")
+
     plt.rcParams['axes.prop_cycle'] = cycler(color='krbmgcy')
     plt.rcParams['axes.linewidth'] = 1.5
 
