@@ -1,7 +1,17 @@
-tests/stacks/
-tests/traj/
+# Byte-compiled files and Jupyter Notebook checkpoints
 __pycache__/
 *.egg-info/
 *.pyc
 .ipynb_checkpoints/
 build/
+
+# Private cryptography keys
+*.pem
+
+# Logging files
+*.log
+
+# Tutorial Files
+# SimAFM
+tutorial/SimAFM/keys/*
+tutorial/SimAFM/output/*
