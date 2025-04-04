@@ -12,6 +12,10 @@ build/
 *.log
 
 # Tutorial Files
+# Common files. These are used in multiple tutorials, but are large binary files.
+# They should not be git tracked, and will need to be distributed separately.
+tutorials/common/*
+
 # SimAFM
-tutorial/SimAFM/keys/*
-tutorial/SimAFM/output/*
+tutorials/SimAFM/keys/*
+tutorials/SimAFM/output/*
