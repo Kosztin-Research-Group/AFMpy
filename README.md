@@ -2,12 +2,9 @@
 
 ## Table of Contents
 - [Installation](#installation)
-    - [CPU Version](#cpu-version)
-        - [CPU Dependencies](#cpu-dependencies)
-        - [CPU Installation Walkthrough](#cpu-installation-walkthrough)
-    - [GPU Version](#gpu-version)
-        - [GPU Dependencies](#gpu-dependencies)
-        - [GPU Installation Walkthrough](#gpu-installation-walkthrough)
+    - [Automatic Installation](#automatic-installation)
+    - [Manual CPU Installation](#manual-cpu-installation)
+    - [Manual GPU Installation](#manual-gpu-installation)
 - [Usage](#usage)
 - [License](#license)
 - [Contact](#contact)
@@ -16,22 +13,44 @@
 ## Installation
 AFMpy is distributed with both a CPU and GPU version. Please see the following sections outlining the dependencies and installation instructions for each version. It is highly reccomended to use virtual environments to manage your installation. Furthermore, anaconda compatible ```environment.yml``` files are included to simplify creating the environments. Installing Miniconda is outlined [here](https://docs.anaconda.com/miniconda/install/).
 
-### CPU Version
+### Automatic installation
+An installation bash script is included in the src/ directory called ```install.sh```. It will automatically configure a conda virtual environment and install AFMpy. You can run it in your terminal by navigating to src/ and executing one of the following commands.
+
+```bash
+# To install the CPU only version
+bash install.sh CPU
+
+# To install the GPU version
+bash install.sh GPU
+```
+
+Once the installation script is completed, you can activate the conda environment with
+```bash
+# If you installed the CPU version
+conda activate AFMpy-CPU
+
+# Or if you installed the GPU version
+conda activate AFMpy-GPU
+```
+
+and you can confirm installation of AFMpy with the following:
+```bash
+conda list AFMpy
+```
+
+which should return something that looks like:
+```bash
+# packages in environment at /path/to/your/miniconda3/envs/your_environment_name:
+#
+# Name                    Version                   Build  Channel
+afmpy                     x.y.z                    pypi_0    pypi
+```
+
+If the previous test succeeded, you are now ready to use AFMpy!
+
+### Manual CPU Installation
 The CPU version of AFMpy is included for those without a CUDA enabled GPU. Performance is severely degraded when compared to the GPU version, and is not reccomended if the resources are available.
 
-#### CPU Dependencies
-- **python 3.12.2**
-- **numpy** - ```conda```
-- **scikit-learn** - ```conda```
-- **scikit-image** - ```conda```
-- **matplotlib** - ```conda```
-- **jupyter** - ```conda```
-- **MDAnalysis** - ```conda conda-forge```
-- **pystackreg** - ```conda conda-forge```
-- **opencv-python** - ```pip```
-- **tensorflow 2.16.1** - ```pip```
-
-#### CPU Installation Walkthrough
 Create the conda environment by navigating to the `AFMpy/src/` directory and running one of the following:
 
 ```bash
@@ -72,25 +91,10 @@ afmpy                     x.y.z                    pypi_0    pypi
 
 If the previous test succeeded, you are now ready to use AFMpy!
 
-### GPU Version
+### Manual GPU Installation
 The GPU version of AFMPy is indlucded for those with a CUDA enabled GPU. Its performance eclipses the CPU version's by an order of magnitude and is highly reccomended if the resources are available.
 Note: This version of AFMpy was developed using CUDA12. CUDA11 has not been tested. Those wishing to use CUDA11 will need to prepare their environment from scratch and edit the setup.py for `cupy-cuda11x` accordingly.
 
-#### GPU Dependencies
-- **python 3.12.2**
-- **CUDA 12.x**
-- **numpy** - ```conda```
-- **scikit-learn** - ```conda```
-- **scikit-image** - ```conda```
-- **matplotlib** - ```conda```
-- **jupyter** - ```conda```
-- **MDAnalysis** - ```conda conda-forge```
-- **pystackreg** - ```conda conda-forge```
-- **opencv-python** - ```pip```
-- **tensorflow[and-cuda] 2.16.1** - ```pip```
-- **cupy-cuda12** - ```pip```
-
-#### GPU Installation Walkthrough
 Create the conda environment by navigating to the `AFMpy/src/` directory and running one of the following:
 ```bash
 # If you wish to use the default environment name
@@ -142,27 +146,6 @@ If the previous command returned an empty list, your GPU is not being properly d
 If the previous two tests succeeded, you are now ready to use AFMpy!
 
 ## Usage
-AFMpy is a collection of modules outlined here:
-
-```project
-- AFMpy.DL
-    - AFMpy.DL.Models - Custom deep learning models
-    - AFMpy.DL.Losses - Custom loss functions
-- AFMpy.LAFM
-    - AFMpy.LAFM.LAFM - Localization Atomic Force Microscopy functions
-- AFMpy.REC
-    - AFMpy.REC.REC - Registration and clustering functions
-- AFMpy.SimAFM
-    - AFMpy.SimAFM.Simulate_Common - Simulated AFM stack class and common simulation functions
-    - AFMpy.SimAFM.SimulateCPU - CPU simulation functions
-    - AFMpy.SimAFM.SimulateGPU - GPU accelerated simulation functions
-- AFMpy.SSIM
-    - AFMpy.SSIM.SSIM - Custom structural similarity index measure functions
-- AFMpy.Utilities - Utility functions for logging and memory management
-    - AFMpy.Utilities.Logging - Logging functions
-    - AFMpy.Utilities.Math - Helpful mathematical functions
-    - AFMpy.Utilities.Memory - Memory management functions
-```
 You can load AFMpy into a python script or jupyter notebook with the following:
 ```python
 import AFMpy as AFM
