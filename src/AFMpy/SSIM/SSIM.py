@@ -1,5 +1,6 @@
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
+from pystackreg import StackReg
 
 from AFMpy import REC
 
@@ -40,8 +41,8 @@ def masked_SSIM(img1: np.ndarray,
 
 def registered_SSIM(ref: np.ndarray,
                     mov: np.ndarray,
+                    sr: StackReg,
                     threshold_rel: float = 0.05,
-                    method: str = 'rigid',
                     **kwargs):
     '''
     Calculates the average masked SSIM between two unaligned images.
@@ -53,14 +54,14 @@ def registered_SSIM(ref: np.ndarray,
             The reference image.
         mov (np.ndarray):
             The image to compare to the reference image.
+        sr (StackReg):
+            The StackReg object to use for image registration.
         threshold_rel (float):
             The relative threshold for the mask. Pixels above this threshold in either image will be included in the mask.
-        method (str):
-            The registration method to use. Options are 'rigid' and 'affine'.
         **kwargs:
             Additional keyword arguments to pass to skimage.metrics.structural_similarity.
 
     '''
-    registered_im = REC.register_image(ref, mov, method = method)
+    registered_im = REC.register_image(ref, mov, sr = sr)
 
     return masked_SSIM(ref, registered_im, threshold_rel = threshold_rel, **kwargs)

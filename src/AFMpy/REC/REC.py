@@ -726,8 +726,18 @@ def hierarchical_DSC(input_stack: Stack.Stack,
     Returns:
         List[Stack.Stack]: A list of AFMpy Stack objects. Each stack is a conformational cluster of the input stack.
     '''
+    logger.debug(f'Beginning Hierarchical DSC on stack {id(input_stack)}')
     # Extract the images from the stack
-    images = input_stack.stack
+    base_images = input_stack.stack
+    images = np.copy(base_images)
+
+    base_indexes = input_stack.indexes
+    indexes = np.copy(base_indexes)
+
+    # If the LAFM target resolution is not provided, set it to 3x the resolution of the input images
+    if lafm_target_resolution is None:
+        logger.warning('LAFM target resolution not provided. Setting to 3x the resolution of the input images.')
+        lafm_target_resolution = tuple([int(res * 3) for res in input_stack.shape[1:3]])
 
     # Expand the dimensions of the images so they have the shape (num_images, height, width, channels)
     images = np.expand_dims(images, axis = -1)
@@ -739,21 +749,25 @@ def hierarchical_DSC(input_stack: Stack.Stack,
     latent_vectors = calculate_LFV(images, cae)
 
     # Generate the affinity matrix from the latent vectors with locally scaled affinity
-    affinity_matrix = local_scaled_affinity(latent_vectors, k_neighbors = k_neighbors)
+    base_affinity_matrix = local_scaled_affinity(latent_vectors, k_neighbors = k_neighbors)
+    affinity_matrix = np.copy(base_affinity_matrix)
 
     output_clusters = []
     # Perform hierarchical spectral clustering on the affinity matrix:
     for iteration in range(max_iterations):
+        logger.info(f'Beginning iteration {iteration} of hierarchical DSC.')
         # Perform 2-Spectral Clustering
+        logger.debug('Performing 2-Spectral Clustering.')
         cluster_labels_2 = spectral_cluster(affinity_matrix, 2, **kwargs)
         bicluster_labels_2 = np.array([np.where(cluster_labels_2 == i, True, False) for i in range(2)])
-        clustered_stacks_2 = [Stack.Stack(images[bicluster],
-                                          resolution = input_stack.resolution,
-                                          indexes = input_stack.indexes[bicluster]) for bicluster in bicluster_labels_2]
+        clustered_stacks_2 = np.array([Stack.Stack(images[bicluster],
+                                                   resolution = input_stack.resolution,
+                                                   indexes = indexes[bicluster]) for bicluster in bicluster_labels_2])
         clustered_lafms_2 = np.array([clustered_stack.calc_LAFM_image(target_resolution = lafm_target_resolution,
                                                                       sigma = lafm_sigma) for clustered_stack in clustered_stacks_2])
         # Calculate the SSIM between the LAFMs
         ssim_2 = SSIM.masked_SSIM(*clustered_lafms_2, threshold_rel = 0.05)
+        logger.info(f'SSIM between 2-Clustering LAFMs: {ssim_2:.2f}')
 
         if ssim_2 > distinct_cluster_threshold:
             # If the SSIM is above the threshold, concatenate the clusters and break the loop.
@@ -763,11 +777,12 @@ def hierarchical_DSC(input_stack: Stack.Stack,
             break
 
         # Perform the 3-Spectral Clustering
+        logger.debug('Performing 3-Spectral Clustering.')
         cluster_labels_3 = spectral_cluster(affinity_matrix, 3, **kwargs)
         bicluster_labels_3 = np.array([np.where(cluster_labels_3 == i, True, False) for i in range(3)])
-        clustered_stacks_3 = [Stack.Stack(images[bicluster],
-                                          resolution = input_stack.resolution,
-                                          indexes = input_stack.indexes[bicluster]) for bicluster in bicluster_labels_3]
+        clustered_stacks_3 = np.array([Stack.Stack(images[bicluster],
+                                                   resolution = input_stack.resolution,
+                                                   indexes = indexes[bicluster]) for bicluster in bicluster_labels_3])
         clustered_lafms_3 = np.array([clustered_stack.calc_LAFM_image(target_resolution = lafm_target_resolution,
                                                                       sigma = lafm_sigma) for clustered_stack in clustered_stacks_3])
 
@@ -776,12 +791,15 @@ def hierarchical_DSC(input_stack: Stack.Stack,
         ssim_3 = np.array([SSIM.masked_SSIM(clustered_lafms_3[pair[0]],
                                             clustered_lafms_3[pair[1]],
                                             threshold_rel = 0.05) for pair in pairs])
+        logger.info(f'SSIM between 3-Clustering LAFMs: {np.round(ssim_3,2)}')
         
         # Calculate the stability of each 2-cluster
         stability_ssims = np.array([[SSIM.masked_SSIM(lafm2, lafm3, threshold_rel = 0.05) for lafm2 in clustered_lafms_2] for lafm3 in clustered_lafms_3])
+        logger.info(f'SSIM between 2-Clustering LAFMs and 3-Clustering LAFMs: {np.ravel(np.round(stability_ssims, 2))}')
 
         # Determine which clusters are stable
         which_stable = np.logical_or(*(stability_ssims > stability_threshold))
+        logger.info(f'Cluster stability: {which_stable}')
 
         # If none of the clusters are stable, break the loop
         if not np.any(which_stable):
@@ -798,11 +816,11 @@ def hierarchical_DSC(input_stack: Stack.Stack,
             break
 
         # Get the stable cluster and append it to the output clusters
-        stable_cluster = clustered_stacks_2[which_stable]
+        stable_cluster = clustered_stacks_2[which_stable][0]
         output_clusters.append(stable_cluster)
 
         # Get the unstable clusters    
-        unstable_cluster = clustered_stacks_2[~which_stable]
+        unstable_cluster = clustered_stacks_2[~which_stable][0]
 
         # Get the indexes of the unstable cluster, and update the affinity matrix to only include only the unstable cluster
         unstable_indexes = unstable_cluster.indexes
@@ -818,8 +836,12 @@ def hierarchical_DSC(input_stack: Stack.Stack,
             logger.warning(f'Maximum iterations reached. Appending final unstable cluster to output. Exiting at iteration {iteration}.')
             output_clusters.append(unstable_cluster)
             break
-
-        affinity_matrix = affinity_matrix[unstable_indexes][:, unstable_indexes]
+        
+        # Update the images and affinity matrix to only include the unstable cluster
+        logger.info(f'Updating images and affinity matrix to only include unstable cluster. {unstable_indexes.shape[0]} images remaining.')
+        affinity_matrix = base_affinity_matrix[unstable_indexes][:, unstable_indexes]
+        images = base_images[unstable_indexes]
+        indexes = base_indexes[unstable_indexes]
 
     # Return the output clusters containing all stable clusters.
     return output_clusters

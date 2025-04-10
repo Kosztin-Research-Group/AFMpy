@@ -29,7 +29,7 @@ class Stack():
         resolution (float):
             The resolution of images in the stack. Units are in Angstroms per pixel. The resolution must be square, i.e.
             the pixel width and height must be equal.
-        metadata (Dict[str, Any]):
+        **metadata (Any):
             The metadata associated with the image stack. Key-value pairs of metadata.
     '''
 

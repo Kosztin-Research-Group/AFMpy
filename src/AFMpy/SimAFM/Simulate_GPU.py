@@ -82,7 +82,8 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
                          grid: np.ndarray,
                          tip_radius: float,
                          tip_theta: float,
-                         vdw_dict: VDW_Dict) -> np.ndarray:
+                         vdw_dict: VDW_Dict,
+                         center_atoms: bool = False) -> np.ndarray:
     '''
     Generates a stack of simulated AFM images in serial using GPU acceleration.
 
@@ -103,6 +104,9 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
             The angle of the tip cone. Units are in degrees. Converted to radians internally.
         vdw_dict (VDW_Dict):
             The Van der Waals radius dictionary.
+        center_atoms (bool):
+            Whether to center the atoms before scanning. Default is False.
+            This should be used only in cases where the protein is not centered in the box, or pre-aligned.
     Returns:
         numpy.ndarray:
             The stack of simulated AFM images. Shape is (n_images, n_pixels_x, n_pixels_y)
@@ -125,6 +129,12 @@ def simulate_AFM2D_stack(universe: MDA.Universe,
         prot_atoms = universe.select_atoms(f'{atom_selection} and prop z > {background}')
         prot_positions = prot_atoms.positions
         prot_positions[:,-1] = prot_positions[:,-1] - background
+
+        # Center the atoms if specified
+        if center_atoms:
+            prot_cog = universe.select_atoms(atom_selection).center_of_geometry()
+            transformation = [*prot_cog[:2], 0]
+            prot_positions -= transformation
 
         # Create the radius array
         radius_array = make_radius_array(prot_atoms, vdw_dict)
