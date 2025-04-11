@@ -56,3 +56,4 @@ else
 fi
 
 echo "Conda environment $ENV_NAME created."
+echo "Activate with: conda activate $ENV_NAME"

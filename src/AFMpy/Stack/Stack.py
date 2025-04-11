@@ -20,7 +20,7 @@ class Stack():
     Class for AFM image stacks. Includes the image stack, the shape of stack, 
 
     Attributes:
-        stack (numpy.ndarray):
+        images (numpy.ndarray):
             The simulated AFM image stack.
         grid (numpy.ndarray):
             The grid of pixel coordinates used to generate the stack.
@@ -34,7 +34,7 @@ class Stack():
     '''
 
     def __init__(self,
-                 stack: np.ndarray,
+                 images: np.ndarray,
                  resolution: float,
                  indexes = None,
                  **metadata: Any) -> None:
@@ -42,7 +42,7 @@ class Stack():
         Initialization method for SimAFM_Stack.
         
         Args:
-            stack (numpy.ndarray):
+            images (numpy.ndarray):
                 The simulated AFM image stack. numpy.ndarray with shape (n_images, n_pixels_x, n_pixels_y).
             resolution (float):
                 The resolution of images in the stack. Units are in Angstroms per pixel.
@@ -55,11 +55,11 @@ class Stack():
         Returns:
             None
         '''
-        # Set the stack attribute.
-        self._stack = stack
+        # Set the images attribute.
+        self._images = images
 
         # Set the shape attribute.
-        self._shape = stack.shape
+        self._shape = images.shape
 
         # Set the resolution attribute.
         self._resolution = resolution
@@ -245,7 +245,7 @@ class Stack():
                         force_recalc: bool = False,
                         **kwargs) -> np.ndarray:
         '''
-        Calculates the mean image of the stack.
+        Calculates the mean image of the image stack.
 
         Args:
             force_recalc (bool):
@@ -262,7 +262,7 @@ class Stack():
         # Check if the mean image is already calculated.
         if force_recalc or self._mean_image is None:
             logger.debug(f'Calculating the mean image of for SimAFM_Stack {id(self)}.')
-            self._mean_image = np.mean(self._stack, axis = 0, **kwargs)
+            self._mean_image = np.mean(self._images, axis = 0, **kwargs)
             return self._mean_image
         else:
             logger.warning(f'Mean image already calculated for SimAFM_Stack {id(self)}. Returning the mean image without recalculation. Set force_recalc to True to force recalculation.')
@@ -298,7 +298,7 @@ class Stack():
         # Check if the LAFM image is already calculated.
         if force_recalc or self._LAFM_image is None:
             logger.debug(f'Calculating the LAFM image of for SimAFM_Stack {id(self)}.')
-            self._LAFM_image = LAFM.LAFM2D(self._stack, target_resolution, sigma, **kwargs)
+            self._LAFM_image = LAFM.LAFM2D(self._images, target_resolution, sigma, **kwargs)
             return self._LAFM_image
         else:
             logger.warning(f'LAFM image already calculated for SimAFM_Stack {id(self)}. Returning the LAFM image without recalculation. Set force_recalc to True to force recalculation.')
@@ -322,24 +322,24 @@ class Stack():
 
     def shuffle(self) -> None:
         '''
-        Shuffles the stack in place.
+        Shuffles the image stack in place.
         '''
         # Generate a random permutation of the indexes and shuffle the stack.
         logger.debug(f'Shuffling SimAFM_Stack {id(self)}.')
         self._indexes = np.random.permutation(self._indexes)
-        self._stack = self._stack[self._indexes]
+        self._images = self._images[self._indexes]
 
         # Set the shuffled metadata attribute to True.
         self.add_metadata(shuffled = True)
 
     def unshuffle(self) -> None:
         '''
-        Unshuffles the stack in place.
+        Unshuffles the image stack in place.
         '''
         # Sort the indexes and unshuffle the stack.
         logger.debug(f'Unshuffling SimAFM_Stack {id(self)}.')
         self._indexes = np.argsort(self._indexes)
-        self._stack = self._stack[self._indexes]
+        self._images = self._images[self._indexes]
 
         # Set the shuffled metadata attribute to False.
         self.add_metadata(shuffled = False)
@@ -370,11 +370,11 @@ class Stack():
         
         # Concatenate the two stacks.
         logger.debug(f'Concatenating SimAFM_Stack {id(self)} and SimAFM_Stack {id(other)}.')
-        self._stack = np.concatenate((self._stack, other.stack), axis = 0)
+        self._images = np.concatenate((self._images, other.stack), axis = 0)
         self._indexes = np.concatenate((self._indexes, other.indexes), axis = 0)
 
         # Update the shape attribute.
-        self._shape = self._stack.shape
+        self._shape = self._images.shape
 
         # Add metadata to the metadata attribute.
         self.add_metadata(**metadata)
@@ -390,11 +390,11 @@ class Stack():
     ######################
 
     @property
-    def stack(self) -> np.ndarray:
+    def images(self) -> np.ndarray:
         '''
         The simulated AFM image stack. numpy.ndarray with shape (n_images, n_pixels_x, n_pixels_y).
         '''
-        return self._stack
+        return self._images
     
     @property
     def shape(self) -> tuple:
