@@ -443,7 +443,7 @@ def DSC(input_stack: Stack.Stack,
         List[Stack.Stack]: A list of AFMpy Stack objects. Each stack is a conformational cluster of the input stack.
     '''
     # Extract the images from the stack
-    images = input_stack.stack
+    images = input_stack.images
 
     # Expand the dimensions of the images so they have the shape (num_images, height, width, channels)
     images = np.expand_dims(images, axis = -1)
@@ -464,7 +464,7 @@ def DSC(input_stack: Stack.Stack,
     bicluster_labels = np.array([np.where(cluster_labels == i, True, False) for i in range(n_clusters)])
 
     # Create stack objects for each cluster
-    clustered_stacks = [Stack.Stack(input_stack.stack[bicluster],
+    clustered_stacks = [Stack.Stack(input_stack.images[bicluster],
                                     resolution = input_stack.resolution,
                                     indexes = input_stack.indexes[bicluster]) for bicluster in bicluster_labels]
     
@@ -500,7 +500,7 @@ def REC(input_stack: Stack.Stack,
             Keyword arguments. Passed to spectral_cluster function.
     '''
     # Extract the images from the stack
-    input_images = input_stack.stack
+    input_images = input_stack.images
     # Center the stack of images.
     centered_images = center_image_stack(input_images, method = 'cog')
     # Register the image stack according to the reference index
@@ -565,7 +565,7 @@ def IREC(input_stack: Stack.Stack,
     '''
     # Inital Registration and Clustering
     # Extract the images from the stack
-    input_images = input_stack.stack
+    input_images = input_stack.images
     # Center the stack of images.
     centered_images = center_image_stack(input_images, method = 'cog')
     # Register the image stack according to the reference index
@@ -728,7 +728,7 @@ def hierarchical_DSC(input_stack: Stack.Stack,
     '''
     logger.debug(f'Beginning Hierarchical DSC on stack {id(input_stack)}')
     # Extract the images from the stack
-    base_images = input_stack.stack
+    base_images = input_stack.images
     images = np.copy(base_images)
 
     base_indexes = input_stack.indexes

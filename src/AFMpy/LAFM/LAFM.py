@@ -12,25 +12,14 @@ logger = logging.getLogger(__name__)
 
 __all__ = ['LAFM2D']
 
-### Functions for Grayscale (0-1) Color Mapping
-_red_func = lambda z: -z**2+2*z
-_green_func = lambda z: _red_func(z)*z
-_blue_func = lambda z: (z*(np.sin(3*np.pi*(z+1/2))+1)/2)
-
-### Functions for Grayscale (0-255) Color Mapping 
-_N = 256
-_R = lambda z: -z**2/_N+2*z
-_G = lambda z: _R(z)*z/_N
-_B = lambda z: z*(np.sin(0.037*(z+_N/2))+1)/2
-
-def LAFM2D(stack: np.ndarray,
+def LAFM2D(images: np.ndarray,
            target_resolution: Tuple[int, int],
            sigma: float, **peak_local_max_kwargs):
     """
     Generates an LAFM image with real space height pixel intensity from a stack of AFM images.
 
     Args:
-        stack (numpy.ndarray):
+        images (numpy.ndarray):
             Stack of N aligned AFM images with shape (N, X, Y). Each image represents the pixel resolution of the AFM scan.
         resize_factor (int):
             The factor by which to expand the image. For example, if each AFM image is (64,64) and resize_factor is 3, 
@@ -49,13 +38,13 @@ def LAFM2D(stack: np.ndarray,
             height of the sample.
     """
     ### Normalizing the stack
-    normalized_stack = Utilities.Math.norm(stack, (0,1))
+    normalized_stack = Utilities.Math.norm(images, (0,1))
 
     ### Creating an empty list to store the LAFM contributions from each image in the stack
     lafm_stack = []
 
     ### Looping over each image in the stack
-    for image, norm_image in zip(stack, normalized_stack):
+    for image, norm_image in zip(images, normalized_stack):
 
         ### Resizing the image and normalized image by the resize factor
         expanded_image = cv2.resize(image,
@@ -92,4 +81,4 @@ def LAFM2D(stack: np.ndarray,
     ### Averaging per pixel over all LAFM contributions from each image in the stack.
     ### Rescaling the intensity of the image to increase visibility, and outputting.
     return  rescale_intensity(np.mean(np.array(lafm_stack), axis = 0),
-                              out_range = (0, np.max(np.mean(stack, axis = 0))))
+                              out_range = (0, np.max(np.mean(images, axis = 0))))
