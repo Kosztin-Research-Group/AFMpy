@@ -380,7 +380,7 @@ class Stack():
         self.add_metadata(**metadata)
         self.add_metadata(concatenated = True)
 
-        # Update the processed image attributes.
+        # Reseat the processed image attributes.
         self._mean_image = None
         self._LAFM_image = None
         return self
@@ -428,6 +428,9 @@ class Stack():
         '''
         The mean image of the stack.
         '''
+        if self._mean_image is None:
+            logger.error('Mean image has not been calculated. Call calc_mean_image() to calculate the mean image.')
+            raise ValueError('Mean image has not been calculated. Call calc_mean_image() to calculate the mean image.')
         return self._mean_image
     
     @property
@@ -435,6 +438,9 @@ class Stack():
         '''
         The LAFM image of the stack.
         '''
+        if self._LAFM_image is None:
+            logger.error('LAFM image has not been calculated. Call calc_LAFM_image() to calculate the LAFM image.')
+            raise ValueError('LAFM image has not been calculated. Call calc_LAFM_image() to calculate the LAFM image.')
         return self._LAFM_image
     
     #############################
