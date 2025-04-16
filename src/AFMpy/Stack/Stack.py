@@ -3,10 +3,12 @@ import lzma
 import pickle
 import logging
 import warnings
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 
+import matplotlib.pyplot as plt
 
 import numpy as np
+import pandas as pd
 
 from AFMpy import Utilities, LAFM
 
@@ -385,6 +387,35 @@ class Stack():
         self._LAFM_image = None
         return self
 
+    ###########################
+    ##### Plottin Methods #####
+    ###########################
+
+    def plot_image(self,
+                   index: int,
+                   ax: plt.Axes = None,
+                   **kwargs) -> plt.Axes:
+        '''
+        Plot a single image from the stack.
+
+        Args:
+            index (int):
+                The index of the image to plot.
+            ax (matplotlib.axes.Axes):
+                The matplotlib axes to plot on. If None, uses plt.gca().
+            **kwargs:
+                Additional keyword arguments to be passed to plt.imshow.
+        Returns:
+            ax (matplotlib.axes.Axes):
+                The matplotlib axes with the plotted image.
+        '''
+        # If the axis is None, use plt.gca().
+        ax = ax or plt.gca()
+
+        # Show the image
+        ax.imshow(self._images[index], **kwargs)
+        return ax
+
     ######################
     ##### Properties #####
     ######################
@@ -481,7 +512,7 @@ class Stack():
             logging.debug(f'Removing {key} from SimAFM_Stack {id(self) }metadata.')
             self._metadata.pop(key, None)
 
-    def get_metadata(self, key: str) -> Optional[Any]:
+    def get_metadata(self, key: str) -> Any:
         '''
         Returns the value of a metadata attribute. If the key is not found, warns the user and returns None.
 
@@ -498,10 +529,28 @@ class Stack():
 
         return self._metadata.get(key, None)
 
-    def print_metadata(self) -> None:
+    def display_metadata(self) -> None:
         '''
-        Method for printing all metadata pairs from the metadata attribute.
+        Method for displaying all metadata pairs from the metadata attribute.
         '''
-        logger.debug(f'Printing SimAFM_Stack {id(self)} metadata.')
-        for key, value in self._metadata.items():
-            print(f'{key}: {value}')
+        # Determine if the environment is interactive (e.g. Jupyter Notebook).
+        try:
+            from IPython import get_ipython
+        except ImportError:
+            get_ipython = None
+
+        # If the environment is interactive, use IPython to display the metadata. Otherwise, print the metadata.
+        ip = get_ipython() if get_ipython else None
+        if ip is not None:
+            # Display the metadata as a pandas DataFrame.
+            logger.debug(f'Inside Interactive enviroment. Displaying SimAFM_Stack {id(self)} metadata.')
+            from IPython.display import display
+
+            metadata_df = pd.DataFrame(self._metadata.items(), columns = ['Key', 'Value'])
+            display(metadata_df.style.hide(axis="index"))
+        else:
+            # Print the metadata as nicely formatted text.
+            logger.debug(f'Not in Interactive enviroment. Printing SimAFM_Stack {id(self)} metadata.')
+            print('SimAFM_Stack Metadata:')
+            for key, value in self._metadata.items():
+                print(f'{key}: {value}')

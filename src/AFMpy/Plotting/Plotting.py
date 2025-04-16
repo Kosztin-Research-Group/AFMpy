@@ -1,11 +1,16 @@
-import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from cycler import cycler
 from matplotlib.colors import ListedColormap
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.font_manager as fm
+
+import numpy as np
 
 import logging
 
-__all__ = ['LAFMcmap', 'configure_formatting']
+__all__ = ['LAFMcmap', 'configure_formatting', 'add_scalebar', 'add_colorbar', 'draw_colorbar_to_ax']
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +78,120 @@ def configure_formatting() -> None:
     plt.rcParams["mathtext.fontset"] = 'stix'
 
     logger.debug('Configured matplotlib formatting.')
+
+def add_scalebar(width: float,
+                label: str = '',
+                pad: float = 0.25,
+                color: str = 'white',
+                size_vertical: float = 1/8,
+                fontsize: int = 12,
+                ax: plt.Axes = None):
+    '''
+    Add a scale bar to a given axis.
+
+    Args:
+        width (float):
+            The width of the scale bar in pixels.
+        label (str):
+            The label for the scale bar.
+        pad (float):
+            The padding between the scale bar and the label.
+        color (str):
+            The color of the scale bar.
+        size_vertical (float):
+            The height of the scale bar in pixels.
+        fontsize (int):
+            The font size of the label.
+        ax (plt.Axes):
+            The axis to add the scale bar to. If None, use the current axis.
+    Returns:
+        ax (plt.Axes):
+            The axis with the scale bar added.
+    '''
+    # If the axis is None, use plt.gca()
+    ax = ax or plt.gca()
+
+    # Set the scale bar properties
+    fontprops = fm.FontProperties(size=fontsize)
+    scalebar = AnchoredSizeBar(ax.transData,
+                               size = width,
+                               label = label,
+                               loc = 'lower right',
+                               pad = pad,
+                               frameon = False,
+                               color = color,
+                               size_vertical = size_vertical,
+                               fontproperties = fontprops)
+    # Add the scale bar to the axis
+    ax.add_artist(scalebar)
+    
+    # Return the axis
+    return ax
+
+def add_colorbar(label: str = '',
+                 width: str = '5%',
+                 pad: float = 0.08,
+                 ax: plt.Axes = None):
+    '''
+    Add a colorbar to a given axis.
+
+    Args:
+        label (str):
+            The label for the colorbar.
+        width (float):
+            The width of the colorbar in pixels.
+        pad (float):
+            The padding between the colorbar and the axis.
+        ax (plt.Axes):
+    '''
+    # If the axis is None, use plt.gca()
+    ax = ax or plt.gca()
+
+    # Get the mappable from the axis
+    mappable = ax.get_images()[0]
+    if not isinstance(mappable, mpl.cm.ScalarMappable):
+        raise ValueError('The axis does not contain a mappable.')
+    
+    divider = make_axes_locatable(ax)
+    cbar_ax = divider.append_axes("right", size=width, pad=pad)
+
+    fig = ax.figure
+    cbar = fig.colorbar(mappable, cax=cbar_ax, orientation='vertical')
+    cbar.set_label(label, rotation=90, labelpad=8, fontsize=16)
+
+    return cbar
+
+def draw_colorbar_to_ax(vmin: float,
+                        vmax: float,
+                        cmap: mpl.colors.Colormap,
+                        label: str = '',
+                        cbar_ax: plt.Axes = None):
+    '''
+    Draws a colorbar to a given axis.
+    Args:
+        vmin (float):
+            The minimum value for the colorbar.
+        vmax (float):
+            The maximum value for the colorbar.
+        cmap (mpl.colors.Colormap):
+            The colormap to use for the colorbar.
+        label (str):
+            The label for the colorbar.
+        cbar_ax (plt.Axes):
+            The axis to draw the colorbar to. If None, use the current axis.
+    Returns:
+        cbar (mpl.colorbar.Colorbar):
+            The colorbar object.
+    '''
+    # If the axis is None, use plt.gca()
+    cbar_ax = cbar_ax or plt.gca()
+
+    # Set the colorbar properties
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    color_mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+
+    fig = cbar_ax.figure
+    cbar = fig.colorbar(color_mappable, cax=cbar_ax, orientation='vertical')
+    cbar.set_label(label, rotation=90, labelpad=8, fontsize=16)
+
+    return cbar
