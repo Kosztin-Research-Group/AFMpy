@@ -45,8 +45,24 @@ elif [ "$1" == "GPU" ]; then
     # Activate the GPU environment
     conda activate "$ENV_NAME"
 
+    # After the GPU env has been created and activated, add CUDNN_PATH to the environment
+    python_minor=$(python -c "import sys, pathlib, importlib.util as iu; \
+        spec = iu.find_spec('nvidia.cudnn'); \
+        path = pathlib.Path(spec.origin).parent; \
+        print(path)")
+
+    # Add the CUDNN_PATH to the environment
+    conda env config vars set \
+        CUDNN_PATH="$python_minor" \
+        LD_LIBRARY_PATH="$python_minor/lib" \
+        TF_ENABLE_ONEDNN_OPTS=0\
+        TF_CPP_MIN_LOG_LEVEL=2
+
     # Install the GPU version of the probject.
     pip install '.[GPU]'
+
+    # Deactivate the environment
+    conda deactivate
 
 # If the user specifies something else, print an error message
 else

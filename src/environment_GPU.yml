@@ -23,3 +23,4 @@ dependencies:
       - opencv-python
       - cupy-cuda12x
       - tensorflow==2.16.1
+      - nvidia-cudnn-cu12==8.9.7.29
