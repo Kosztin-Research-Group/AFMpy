@@ -128,9 +128,11 @@ def add_scalebar(width: float,
     # Return the axis
     return ax
 
-def add_colorbar(label: str = '',
-                 width: str = '5%',
+def add_colorbar(width: str = '5%',
                  pad: float = 0.08,
+                 label: str = '',
+                 labelpad: float = 8,
+                 fontsize = 16,
                  ax: plt.Axes = None):
     '''
     Add a colorbar to a given axis.
@@ -142,7 +144,15 @@ def add_colorbar(label: str = '',
             The width of the colorbar in pixels.
         pad (float):
             The padding between the colorbar and the axis.
+        labelpad (float):
+            The padding between the label and the colorbar.
+        fontsize (int):
+            The font size of the label.
         ax (plt.Axes):
+            The axis to add the colorbar to. If None, use the current axis.
+    Returns:
+        cbar (mpl.colorbar.Colorbar):
+            The colorbar object.
     '''
     # If the axis is None, use plt.gca()
     ax = ax or plt.gca()
@@ -157,7 +167,7 @@ def add_colorbar(label: str = '',
 
     fig = ax.figure
     cbar = fig.colorbar(mappable, cax=cbar_ax, orientation='vertical')
-    cbar.set_label(label, rotation=90, labelpad=8, fontsize=16)
+    cbar.set_label(label, rotation = 90, labelpad = labelpad, fontsize = fontsize)
 
     return cbar
 
@@ -165,6 +175,8 @@ def draw_colorbar_to_ax(vmin: float,
                         vmax: float,
                         cmap: mpl.colors.Colormap,
                         label: str = '',
+                        labelpad: float = 8,
+                        fontsize: int = 16,
                         cbar_ax: plt.Axes = None):
     '''
     Draws a colorbar to a given axis.
@@ -192,6 +204,6 @@ def draw_colorbar_to_ax(vmin: float,
 
     fig = cbar_ax.figure
     cbar = fig.colorbar(color_mappable, cax=cbar_ax, orientation='vertical')
-    cbar.set_label(label, rotation=90, labelpad=8, fontsize=16)
+    cbar.set_label(label, rotation=90, labelpad = labelpad, fontsize = fontsize)
 
     return cbar

@@ -415,6 +415,58 @@ class Stack():
         # Show the image
         ax.imshow(self._images[index], **kwargs)
         return ax
+    
+    def plot_mean_image(self,
+                        ax: plt.Axes = None,
+                        **kwargs) -> plt.Axes:
+        '''
+        Plot the mean image of the stack.
+        Args:
+            ax (matplotlib.axes.Axes):
+                The matplotlib axes to plot on. If None, uses plt.gca().
+            **kwargs:
+                Additional keyword arguments to be passed to plt.imshow.
+        Returns:
+            ax (matplotlib.axes.Axes):
+                The matplotlib axes with the plotted mean image.
+        '''
+        # If the axis is None, use plt.gca().
+        ax = ax or plt.gca()
+
+        # If the mean image is not computed, raise an error.
+        if self._mean_image is None:
+            logger.error('Mean image has not been calculated. Call calc_mean_image() to calculate the mean image.')
+            raise ValueError('Mean image has not been calculated. Call calc_mean_image() to calculate the mean image.')
+        
+        # Show the mean image
+        ax.imshow(self._mean_image, **kwargs)
+        return ax
+    
+    def plot_LAFM_image(self,
+                        ax: plt.Axes = None,
+                        **kwargs) -> plt.Axes:
+        '''
+        Plot the LAFM image of the stack.
+        Args:
+            ax (matplotlib.axes.Axes):
+                The matplotlib axes to plot on. If None, uses plt.gca().
+            **kwargs:
+                Additional keyword arguments to be passed to plt.imshow.
+        Returns:
+            ax (matplotlib.axes.Axes):
+                The matplotlib axes with the plotted LAFM image.
+        '''
+        # If the axis is None, use plt.gca().
+        ax = ax or plt.gca()
+
+        # If the LAFM image is not computed, raise an error.
+        if self._LAFM_image is None:
+            logger.error('LAFM image has not been calculated. Call calc_LAFM_image() to calculate the LAFM image.')
+            raise ValueError('LAFM image has not been calculated. Call calc_LAFM_image() to calculate the LAFM image.')
+        
+        # Show the LAFM image
+        ax.imshow(self._LAFM_image, **kwargs)
+        return ax
 
     ######################
     ##### Properties #####
