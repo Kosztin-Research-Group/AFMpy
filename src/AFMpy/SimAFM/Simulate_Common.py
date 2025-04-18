@@ -1,15 +1,8 @@
-import copy
-import lzma
-import pickle
 import logging
-import warnings
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
 
 import MDAnalysis as MDA
 import numpy as np
-
-from AFMpy import Utilities
 
 # Create a logger for this module.
 logger = logging.getLogger(__name__)

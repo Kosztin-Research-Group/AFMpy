@@ -196,6 +196,8 @@ def simulate_AFM2D_stack_MP(universe: MDA.Universe,
     testing has shown that using more then 3 or 4 processes performs slightly worse than running in serial. 
     Proceed with caution.
 
+    This function may be deprecated and removed from the namespace in the future.
+
     Args:
         universe (MDAnalysis.Universe):
             The MDAnalysis Universe object.
