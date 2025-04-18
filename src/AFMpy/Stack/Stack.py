@@ -372,7 +372,7 @@ class Stack():
         
         # Concatenate the two stacks.
         logger.debug(f'Concatenating SimAFM_Stack {id(self)} and SimAFM_Stack {id(other)}.')
-        self._images = np.concatenate((self._images, other.stack), axis = 0)
+        self._images = np.concatenate((self._images, other.images), axis = 0)
         self._indexes = np.concatenate((self._indexes, other.indexes), axis = 0)
 
         # Update the shape attribute.

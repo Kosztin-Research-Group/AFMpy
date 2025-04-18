@@ -17,6 +17,7 @@ class ConvolutionalAutoencoder(ABC):
         self._encoder = None
         self._decoder = None
         self._autoencoder = None
+        self._trained = False
 
         self._build_models()
 
@@ -44,6 +45,7 @@ class ConvolutionalAutoencoder(ABC):
         self._encoder = None
         self._decoder = None
         self._autoencoder = None
+        self._trained = False
 
         self._build_models()
 
@@ -85,8 +87,14 @@ class ConvolutionalAutoencoder(ABC):
         Returns:
             None
         '''
+        # Check to see if the model has been trained before. If so, warn the user.
+        if self._trained:
+            logger.warning(f'Model {id(self)} has been trained previously. Resuming training.')
         logger.debug(f'Fitting the autoencoder model for ConvolutionalAutoencoder {id(self)}.')
         self._autoencoder.fit(x,x, batch_size = batch_size, epochs = epochs, verbose = verbose, **kwargs)
+        
+        # Set the trained flag to True
+        self._trained = True
 
     def encode(self, x, batch_size = 32, verbose = 0, **kwargs) -> np.ndarray:
         '''
@@ -209,6 +217,13 @@ class ConvolutionalAutoencoder(ABC):
             logger.error(f'The autoencoder model for ConvolutionalAutoencoder {id(self)} has not been created.')
             raise ValueError(f'The autoencoder model for ConvolutionalAutoencoder {id(self)} has not been created.')
         return self._autoencoder
+    
+    @property
+    def trained(self) -> bool:
+        '''
+        Whether the model has been trained or not.
+        '''
+        return self._trained
     
 class DefaultCAE(ConvolutionalAutoencoder):
     '''
