@@ -13,7 +13,9 @@
 ## Installation
 AFMpy is distributed with both a CPU and GPU version. Please see the following sections outlining the dependencies and installation instructions for each version. It is highly reccomended to use virtual environments to manage your installation. Furthermore, anaconda compatible ```environment.yml``` files are included to simplify creating the environments. Installing Miniconda is outlined [here](https://docs.anaconda.com/miniconda/install/).
 
-### Automatic installation
+### Automatic installation 
+**(Linux/Mac/WSL Only)**
+
 An installation bash script is included in the src/ directory called ```install.sh```. It will automatically configure a conda virtual environment and install AFMpy. You can run it in your terminal by navigating to src/ and executing one of the following commands.
 
 ```bash
@@ -49,6 +51,9 @@ afmpy                     x.y.z                    pypi_0    pypi
 If the previous test succeeded, you are now ready to use AFMpy!
 
 ### Manual CPU Installation
+
+**(Any Operating System)**
+
 The CPU version of AFMpy is included for those without a CUDA enabled GPU. Performance is severely degraded when compared to the GPU version, and is not reccomended if the resources are available.
 
 Create the conda environment by navigating to the `AFMpy/src/` directory and running one of the following:
@@ -92,8 +97,14 @@ afmpy                     x.y.z                    pypi_0    pypi
 If the previous test succeeded, you are now ready to use AFMpy!
 
 ### Manual GPU Installation
-The GPU version of AFMPy is indlucded for those with a CUDA enabled GPU. Its performance eclipses the CPU version's by an order of magnitude and is highly reccomended if the resources are available.
-Note: This version of AFMpy was developed using CUDA12. CUDA11 has not been tested. Those wishing to use CUDA11 will need to prepare their environment from scratch and edit the setup.py for `cupy-cuda11x` accordingly.
+
+**(Any Operating System\*)**
+
+The GPU version of AFMpy is included for those with a CUDA enabled GPU. Its performance eclipses the CPU version's by an order of magnitude and is highly reccomended if the resources are available.
+
+*Note: Setting up GPU compatibility for Tensorflow is often quite difficult. The software requirements for tensorflow often vary by operating system and personal configuration. See the tensorflow installation documentation to see if your operating system is compatible [here](https://www.tensorflow.org/install/pip). Additionally, this version of AFMpy was developed using CUDA12. CUDA11 has not been tested. Those wishing to use CUDA11 will need to prepare their environment from scratch and edit the setup.py for `cupy-cuda11x` accordingly.
+
+*****
 
 Create the conda environment by navigating to the `AFMpy/src/` directory and running one of the following:
 ```bash
@@ -136,7 +147,7 @@ Confirm that tensorflow can access your GPU:
 python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 ```
 
-Which should return a list of the available GPUs:
+Which should return a list of the available GPUs. It will look something like this:
 ```bash
 [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
 ```
@@ -150,6 +161,8 @@ You can load AFMpy into a python script or jupyter notebook with the following:
 ```python
 import AFMpy as AFM
 ```
+
+A set of interactive tutorials are included in the ```tutorials/``` folder. See the ```TUTORIAL_README.md``` for downloading the tutorial files and running the tutorials.
 
 ## License
 AFMpy - Atomic Force Microscopy simulation and analysis in python.
