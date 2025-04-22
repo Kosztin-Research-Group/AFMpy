@@ -16,7 +16,7 @@ AFMpy is distributed with both a CPU and GPU version. Please see the following s
 ### Automatic installation 
 **(Linux/Mac/WSL Only)**
 
-An installation bash script is included in the src/ directory called ```install.sh```. It will automatically configure a conda virtual environment and install AFMpy. You can run it in your terminal by navigating to src/ and executing one of the following commands.
+An installation bash script is included in the src/ directory called ```install.sh```. It will automatically configure a conda virtual environment and install AFMpy. You can run it in your terminal by navigating to ```src/``` and executing one of the following commands.
 
 ```bash
 # To install the CPU only version
