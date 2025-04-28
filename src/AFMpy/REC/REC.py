@@ -383,7 +383,8 @@ def calculate_LFV(image_stack: np.ndarray,
         np.ndarray: The latent feature vectors for the stack of images.
     '''
     # Compile the autoencoder
-    cae.compile(optimizer = 'adam', loss = Losses.combined_ssim_loss)
+    if not cae.compiled:
+        cae.compile(optimizer = 'adam', loss = Losses.combined_ssim_loss)
 
     # Fit the autoencoder
     cae.fit(image_stack)
@@ -613,7 +614,7 @@ def IREC(input_stack: Stack.Stack,
             # Expand the dimensions of the images so they have the shape (num_images, height, width, channels) and normalize
             registered_images_norm = Utilities.norm(np.expand_dims(registered_images, axis = -1))
             # Reset the state of the CAE because the weights are fit to the previous iteration.
-            cae.rebuild()
+            cae.reset_weights()
             # Calculate the latent feature vectors
             latent_vectors = calculate_LFV(registered_images_norm, cae)
             # Generate the affinity matrix from the latent vectors with locally scaled affinity
@@ -665,7 +666,7 @@ def IREC(input_stack: Stack.Stack,
         # Expand the dimensions of the images so they have the shape (num_images, height, width, channels) and normalize
         registered_images_norm = Utilities.norm(np.expand_dims(registered_images, axis = -1))
         # Reset the state of the CAE because the weights are fit to the previous iteration.
-        cae.rebuild()
+        cae.reset_weights()
         # Calculate the latent feature vectors
         latent_vectors = calculate_LFV(registered_images_norm, cae)
         # Generate the affinity matrix from the latent vectors with locally scaled affinity
@@ -680,7 +681,9 @@ def IREC(input_stack: Stack.Stack,
         # Create a stack object for the converged cluster
         converged_stack = Stack.Stack(registered_images[bicluster_labels[which_cluster][0]],
                                       resolution = input_stack.resolution,
-                                      indexes = input_stack.indexes[bicluster_labels[which_cluster][0]])
+                                      indexes = input_stack.indexes[bicluster_labels[which_cluster][0]],
+                                      metadata = deepcopy(input_stack.metadata))
+        converged_stack.add_metadata(registration_reference = input_stack.indexes[reference_index])
         # Append the converged stack to the list of converged stacks
         converged_stacks.append(converged_stack)
     

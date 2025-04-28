@@ -4,6 +4,8 @@ from typing import Tuple
 import numpy as np
 from keras import layers, models
 
+from AFMpy.DL import Util
+
 logger = logging.getLogger(__name__)
 
 __all__ = ['ConvolutionalAutoencoder', 'DefaultCAE']
@@ -18,8 +20,10 @@ class ConvolutionalAutoencoder(ABC):
         self._decoder = None
         self._autoencoder = None
         self._trained = False
+        self._compiled = False
 
         self._build_models()
+        self._cache_weights()
 
     @abstractmethod
     def _build_models(self):
@@ -30,24 +34,45 @@ class ConvolutionalAutoencoder(ABC):
         '''
         pass
 
-    def rebuild(self) -> None:
+    def _cache_weights(self):
         '''
-        Rebuild the encoder, decoder, and auteoncoder models.
-        This is used for resetting the state of the model after training.
+        Caches the current state of the model weights and optimizer weights.
+
+        This is useful for caching the initial state of the model to reset a trained model.
+        '''
+        self._init_weights = self.autoencoder.get_weights()
+
+
+    def reset_weights(self) -> None:
+        '''
+        Reset the state of the Autoencoder to the initial weights.
 
         Args:
             None
         Returns:
             None
         '''
-        logger.debug(f'Rebuilding the models for ConvolutionalAutoencoder {id(self)}.')
+        if not hasattr(self, '_init_weights'):
+            logger.error(f'Initial weights for ConvolutionalAutoencoder {id(self)} were never cached.')
+            raise RuntimeError(f'Initial weights for ConvolutionalAutoencoder {id(self)} were never cached.')
         
-        self._encoder = None
-        self._decoder = None
-        self._autoencoder = None
-        self._trained = False
+        if not hasattr(self, '_init_optimizer_weights'):
+            logger.error(f'Initial optimizer weights for ConvolutionalAutoencoder {id(self)} were never cached.')
+            raise RuntimeError(f'Initial optimizer weights for ConvolutionalAutoencoder {id(self)} were never cached.')
+        
+        logger.debug(f'Resetting the weights for ConvolutionalAutoencoder {id(self)}.')
 
-        self._build_models()
+        # Reset the weights of the autoencoder
+        self._autoencoder.set_weights(self._init_weights)
+
+        # Reset the weights of the optimizer
+        for var, val in zip(self._autoencoder.optimizer.variables,
+                            self._init_optimizer_weights):
+            var.assign(val)
+
+        self._trained = False
+        self._autoencoder.reset_metrics()
+        Util.log_memory_usage()
 
     def compile(self, optimizer = 'adam', loss = 'mse', **kwargs) -> None:
         '''
@@ -66,8 +91,16 @@ class ConvolutionalAutoencoder(ABC):
         if self._autoencoder is None:
             logger.error(f'The autoencoder model for ConvolutionalAutoencoder {id(self)} has not been created.')
             raise ValueError(f'The autoencoder model for ConvolutionalAutoencoder {id(self)} has not been created.')
+        
+        if self._compiled:
+            logger.debug(f'ConvolutionalAutoencoder {id(self)} already compiled. Skipping...')
+            return
+        
         logger.debug(f'Compiling the autoencoder model for ConvolutionalAutoencoder {id(self)}.')
         self._autoencoder.compile(optimizer = optimizer, loss = loss, **kwargs)
+        self._init_optimizer_weights = [var.numpy() for var in self._autoencoder.optimizer.variables]
+        self._compiled = True
+        Util.log_memory_usage()
 
     def fit(self, x, batch_size = 32, epochs = 25, verbose = 1, **kwargs) -> None:
         '''
@@ -225,6 +258,13 @@ class ConvolutionalAutoencoder(ABC):
         '''
         return self._trained
     
+    @property
+    def compiled(self) -> bool:
+        '''
+        Whether the model has been compiled or not.
+        '''
+        return self._compiled
+    
 class DefaultCAE(ConvolutionalAutoencoder):
     '''
     The default Convolutional Autoencoder model for the AFMpy project.
@@ -302,6 +342,7 @@ class DefaultCAE(ConvolutionalAutoencoder):
         self._encoder = encoder
         self._decoder = decoder
         self._autoencoder = autoencoder
+        self._cache_weights()
         
     @property
     def input_shape(self) -> Tuple:

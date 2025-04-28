@@ -1,7 +1,7 @@
 # AFMpy Tutorials
 
 ## Table of Contents
-- [General](#general)
+0. [General](#0-general)
 1. [Simulated Atomic Force Microscopy](#1-simulated-atomic-force-microscopy)
 2. [Localization Atomic Force Microscopy](#2-localization-atomic-force-microscopy)
 3. [Deep Spectral Clustering](#3-deep-spectral-clustering)
@@ -9,7 +9,7 @@
 5. [Registration and Clustering](#5-registraion-and-clustering)
 6. [Iterative Registration and Clustering](#6-iterative-registration-and-clustering)
 
-## General
+## 0. General
 
 The following tutorials are included to give a working understanding of the AFMpy project and its various features. Each tutorial reqiures data files including molecular dynamics trajectories, simulated atomic force microscopy image stacks, and cryptographic keys for verifying the integrity of the distributed data files. The files can be acquired by visiting the Microsoft OneDrive link [here](https://mailmissouri-my.sharepoint.com/:f:/g/personal/cmldnf_umsystem_edu/EsuvntDMQxtOh7tFG5jBG6MBC6wPozJ3Yj0i-Dng5YOnlw?e=Ytp9bL).
 
@@ -68,25 +68,48 @@ This will load jupyter in your default browser. Use the jupyter interface to fin
 1. Simulated Atomic Force Microscopy (SimAFM)
 2. Localization Atomic Force Microscopy (LAFM)
 3. Deep Spectral Clustering (DSC)
-4. Hierarchical Deep Spectral Clustering (HierarchicalDSC) *(WIP)*
+4. Hierarchical Deep Spectral Clustering (HierarchicalDSC)
 5. Registration and Clustering (REC) *(WIP)*
 6. Iterative Registration and Clustering (IREC) *(WIP)*
 
 ## 1. Simulated Atomic Force Microscopy
 
-*Placeholder Text*
+**New Topics Covered**:
+
+- Importing the AFMpy modules
+- Configuring AFMpy logging
+- Loading the AFMpy Matplotlib configuration
+- Creating a Simulated AFM (SimAFM) stack from a molecular dyanmics trajectory
+- Common metadata to add to Stack objects for bookeeping
+- Creating a AFMpy Stack object from SimAFM images
+- Using built in plotting functions to visualize AFM images
+- Generating private/public crypotgraphic key pairs to digitally sign Stack object pickle files
+- Saving AFMpy Stack objects to a pickle file
 
 ## 2. Localization Atomic Force Microscopy
 
-*Placeholder Text*
+**New Topics Covered**:
+
+- Loading AFMpy Stack pickle files into an object instance
+- Verifying pickle file integrity with public keys files and signatures
+- Viewing the metadata of Stack objects
+- Generating mean and LAFM images from Stack objects
+- Using built in plotting functions to visualize mean AFM and LAFM images
 
 ## 3. Deep Spectral Clustering
 
-*Placeholder Text*
+**New Topics Covered**:
+
+- Check GPU availablility with AFMpy
+- Generate an instance of the AFMpy ConvolutionalAutoencoder object
+- Apply Deep Spectral Clustering (DSC)
+- Calculate the masked structrual similarity index measure (SSIM) between images
 
 ## 4. Hierarchical Deep Spectral Clustering
 
-*Placeholder Text*
+**New Topics Covered**:
+
+- Apply Hierarchical Deep Spectral Clustering
 
 ## 5. Registration and Clustering
 

@@ -340,8 +340,8 @@ class Stack():
         '''
         # Sort the indexes and unshuffle the stack.
         logger.debug(f'Unshuffling SimAFM_Stack {id(self)}.')
-        self._indexes = np.argsort(self._indexes)
-        self._images = self._images[self._indexes]
+        self._images = self._images[np.argsort(self._indexes)]
+        self._indexes = np.sort(self._indexes)
 
         # Set the shuffled metadata attribute to False.
         self.add_metadata(shuffled = False)
