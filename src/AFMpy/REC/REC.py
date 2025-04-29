@@ -383,12 +383,17 @@ def calculate_LFV(image_stack: np.ndarray,
         np.ndarray: The latent feature vectors for the stack of images.
     '''
     # Compile the autoencoder
-    if not cae.compiled:
-        cae.compile(optimizer = 'adam', loss = Losses.combined_ssim_loss)
+    if cae.compiled:
+        logger.warning('Autoencoder is already compiled. Skipping compilation.')
+    else:
+        cae.compile()
 
     # Fit the autoencoder
-    cae.fit(image_stack)
-
+    if cae.trained:
+        logger.warning('Autoencoder is already trained. Skipping training.')
+    else:
+        cae.fit(image_stack)
+        
     # Get the latent vector representation
     lfvs = cae.encode(image_stack)
 

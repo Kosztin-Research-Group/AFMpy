@@ -3,26 +3,6 @@ import tensorflow.keras.backend as K
 
 __all__ = ['ssim_loss', 'masked_ssim_loss', 'combined_ssim_loss', 'normalized_combined_ssim_loss']
 
-# def ssim_loss(y_true: tf.Tensor,
-#               y_pred: tf.Tensor) -> tf.Tensor:
-#     '''
-#     Calculates the Structural Similarity Index Measure (SSIM) loss between two images.
-
-#     Args:
-#         y_true (tf.Tensor):
-#             The ground truth image.
-
-#         y_pred (tf.Tensor):
-#             The predicted image.
-    
-#     Returns:
-#         tf.Tensor:
-#             The SSIM loss between the two images.
-#     '''
-#     ssim = tf.image.ssim(y_true, y_pred, max_val=1.0, filter_size=11, filter_sigma=1.5, k1=0.01, k2=0.03, verify_tensor_rank=False)
-    
-#     return 1 - ssim
-
 def ssim_loss(y_true: tf.Tensor,
               y_pred: tf.Tensor) -> tf.Tensor:
     '''

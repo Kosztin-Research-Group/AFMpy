@@ -3,8 +3,9 @@ import logging
 from typing import Tuple
 import numpy as np
 from keras import layers, models
+import dataclasses
 
-from AFMpy.DL import Util
+from AFMpy.DL import Config, Util
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +16,27 @@ class ConvolutionalAutoencoder(ABC):
     Abstract base class for a Convolutional Autoencoder.
     Subclasses must implement `_build_models()` to create self._encoder, self._decoder, and self._autoencoder.
     '''
-    def __init__(self):
+    def __init__(self,
+                 compile_config: Config.CompileConfig | None = None,
+                 fit_config: Config.FitConfig | None = None,
+                 predict_config: Config.PredictConfig | None = None):
+        
+        # Initialize the model attributes
         self._encoder = None
         self._decoder = None
         self._autoencoder = None
         self._trained = False
         self._compiled = False
+        
+        # Initialize the compile, fit, and predict configurations
+        self._compile_config = compile_config or Config.CompileConfig()
+        self._fit_config = fit_config or Config.FitConfig()
+        self._predict_config = predict_config or Config.PredictConfig()
 
+        # Build the models
         self._build_models()
+        
+        # Cache the initial weights of the model
         self._cache_weights()
 
     @abstractmethod
@@ -74,17 +88,13 @@ class ConvolutionalAutoencoder(ABC):
         self._autoencoder.reset_metrics()
         Util.log_memory_usage()
 
-    def compile(self, optimizer = 'adam', loss = 'mse', **kwargs) -> None:
+    def compile(self, **override) -> None:
         '''
         Compile the autoencoder model. Must be called after _build_models().
 
         Args:
-            optimizer (str or keras.optimizers.Optimizer):
-                The optimizer to use for training.
-            loss (str or callable):
-                The loss function to use for training.
-            **kwargs:
-                Additional keyword arguments to pass to the compile function.
+            **override:
+                Additional keyword arguments to override the compile config.
         Returns:
             None
         '''
@@ -96,98 +106,106 @@ class ConvolutionalAutoencoder(ABC):
             logger.debug(f'ConvolutionalAutoencoder {id(self)} already compiled. Skipping...')
             return
         
+        # Override the compile config with the provided arguments
+        cfg = dataclasses.replace(self._compile_config, **override)
+        
         logger.debug(f'Compiling the autoencoder model for ConvolutionalAutoencoder {id(self)}.')
-        self._autoencoder.compile(optimizer = optimizer, loss = loss, **kwargs)
+        self._autoencoder.compile(optimizer = cfg.optimizer, loss = cfg.loss, **cfg.compile_kwargs)
         self._init_optimizer_weights = [var.numpy() for var in self._autoencoder.optimizer.variables]
         self._compiled = True
         Util.log_memory_usage()
 
-    def fit(self, x, batch_size = 32, epochs = 25, verbose = 1, **kwargs) -> None:
+    def fit(self, x, **override) -> None:
         '''
         Fit the autoencoder model. Must be called after compile().
 
         Args:
             x (numpy.ndarray):
-                The input data to fit the model.
-            batch_size (int):
-                The batch size to use for training.
-            epochs (int):
-                The number of epochs to train for.
-            verbose (int):
-                The verbosity level to use during training.
-            **kwargs:
-                Additional keyword arguments to pass to the fit function.
+                The input data to fit the model on.
+            **override:
+                Additional keyword arguments to override the fit config.
         Returns:
             None
         '''
+        cfg = dataclasses.replace(self._fit_config, **override)
+
         # Check to see if the model has been trained before. If so, warn the user.
         if self._trained:
             logger.warning(f'Model {id(self)} has been trained previously. Resuming training.')
         logger.debug(f'Fitting the autoencoder model for ConvolutionalAutoencoder {id(self)}.')
-        self._autoencoder.fit(x,x, batch_size = batch_size, epochs = epochs, verbose = verbose, **kwargs)
-        
+
+        self._autoencoder.fit(x, x,
+                              epochs = cfg.epochs,
+                              batch_size = cfg.batch_size,
+                              verbose = cfg.verbose,
+                              callbacks = cfg.callbacks,
+                              **cfg.fit_kwargs)
+
         # Set the trained flag to True
         self._trained = True
 
-    def encode(self, x, batch_size = 32, verbose = 0, **kwargs) -> np.ndarray:
+    def encode(self, x, **override) -> np.ndarray:
         '''
         Encode the input data.
 
         Args:
             x (numpy.ndarray):
                 The input data to encode.
-            batch_size (int):
-                The batch size to use for encoding.
-            verbose (int):
-                The verbosity level to use during encoding.
-            **kwargs:
-                Additional keyword arguments to pass to the predict function.
+            **override:
+                Additional keyword arguments to override the predict config.
         Returns:
             numpy.ndarray:
                 The encoded data.
         '''
+        cfg = dataclasses.replace(self._predict_config, **override)
+
         logger.debug(f'Encoding data with ConvolutionalAutoencoder {id(self)}.')
-        return self._encoder.predict(x, batch_size = batch_size, verbose = verbose, **kwargs)
+        return self._encoder.predict(x,
+                                     batch_size = cfg.batch_size,
+                                     verbose = cfg.verbose,
+                                     **cfg.predict_kwargs)
     
-    def decode(self, z, batch_size = 32, verbose = 0, **kwargs) -> np.ndarray:
+    def decode(self, z, **override) -> np.ndarray:
         '''
         Decode the some encoded data.
         
         Args:
             z (numpy.ndarray):
                 The encoded data to decode.
-            batch_size (int):
-                The batch size to use for decoding.
-            verbose (int):
-                The verbosity level to use during decoding.
-            **kwargs:
-                Additional keyword arguments to pass to the predict function.
+            **override:
+                Additional keyword arguments to override the predict config.
         Returns:
             numpy.ndarray:
                 The decoded data.
         '''
+        cfg = dataclasses.replace(self._predict_config, **override)
+
         logger.debug(f'Decoding data with ConvolutionalAutoencoder {id(self)}.')
-        return self._decoder.predict(z, batch_size = batch_size, verbose = verbose, **kwargs)
+        return self._decoder.predict(z,
+                                     batch_size = cfg.batch_size,
+                                     verbose = cfg.verbose,
+                                     **cfg.predict_kwargs)
     
-    def reconstruct(self, x, batch_size = 32, verbose = 0, **kwargs) -> np.ndarray:
+    def reconstruct(self, x, **override) -> np.ndarray:
         '''
         Reconstruct the input data.
 
         Args:
             x (numpy.ndarray):
                 The input data to reconstruct.
-            batch_size (int):
-                The batch size to use for reconstruction.
-            verbose (int):
-                The verbosity level to use during reconstruction.
-            **kwargs:
-                Additional keyword arguments to pass to the predict function.
+            **override:
+                Additional keyword arguments to override the predict config.
         Returns:
             numpy.ndarray:
                 The reconstructed data.
         '''
+        cfg = dataclasses.replace(self._predict_config, **override)
+
         logger.debug(f'Reconstructing data with ConvolutionalAutoencoder {id(self)}.')
-        return self._autoencoder.predict(x, batch_size = batch_size, verbose = verbose, **kwargs)
+        return self._autoencoder.predict(x,
+                                         batch_size = cfg.batch_size,
+                                         verbose = cfg.verbose,
+                                         **cfg.predict_kwargs)
     
     def save_weights(self, filepath: str, save_format = 'h5', **kwargs) -> None:
         '''
@@ -273,7 +291,8 @@ class DefaultCAE(ConvolutionalAutoencoder):
                  input_shape: tuple,
                  filter_shape: tuple = (3, 3),
                  num_filters: int = 64,
-                 latent_dim: int = 256):
+                 latent_dim: int = 256,
+                 **kwargs):
         '''
         Initialize the default Convolutional Autoencoder model.
 
@@ -288,13 +307,15 @@ class DefaultCAE(ConvolutionalAutoencoder):
                 The number of filters to use in the convolutional layers.
             latent_dim (int):
                 The dimension of the latent space.
+            **kwargs:
+                Additional keyword arguments to pass to the parent ConvolutionalAutoencoder parent class.
         '''
         self._input_shape = input_shape
         self._filter_shape = filter_shape
         self._num_filters = num_filters
         self._latent_dim = latent_dim
 
-        super().__init__()
+        super().__init__(**kwargs)
 
     def _build_models(self):
         # Check to see if this requrement is created before generating the model.
