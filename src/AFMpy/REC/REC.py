@@ -384,7 +384,7 @@ def calculate_LFV(image_stack: np.ndarray,
     '''
     # Compile the autoencoder
     if cae.compiled:
-        logger.warning('Autoencoder is already compiled. Skipping compilation.')
+        logger.debug('Autoencoder is already compiled. Skipping compilation.')
     else:
         cae.compile()
 
