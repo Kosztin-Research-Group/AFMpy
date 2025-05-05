@@ -207,26 +207,24 @@ class ConvolutionalAutoencoder(ABC):
                                          verbose = cfg.verbose,
                                          **cfg.predict_kwargs)
     
-    def save_weights(self, filepath: str, save_format = 'h5', **kwargs) -> None:
+    def save_weights(self, filepath: str, **kwargs) -> None:
         '''
         Save the weights of the autoencoder model.
 
         Args:
             filepath (str):
-                The filepath to save the weights to.
-            save_format (str):
-                The format to save the weights in.
+                The filepath to save the weights to. Must end in .weights.h5.
             **kwargs:
                 Additional keyword arguments to pass to the save weights function.
         Returns:
             None
         '''
         logger.debug(f'Saving the weights of ConvolutionalAutoencoder {id(self)} to {filepath}.')
-        self._autoencoder.save_weights(filepath, save_format = save_format, **kwargs)
+        self._autoencoder.save_weights(filepath, **kwargs)
 
     def load_weights(self, filepath: str, **kwargs) -> None:
         '''
-        Load the weights of the autoencoder model.
+        Load the weights of the autoencoder model. Sets the trained flag to True.
 
         Args:
             filepath (str):
@@ -238,6 +236,7 @@ class ConvolutionalAutoencoder(ABC):
         '''
         logger.debug(f'Loading the weights from {filepath} to ConvolutionalAutoencoder {id(self)}.')
         self._autoencoder.load_weights(filepath, **kwargs)
+        self._trained = True
 
     @property
     def encoder(self) -> models.Model:
