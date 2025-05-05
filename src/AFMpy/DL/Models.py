@@ -209,11 +209,12 @@ class ConvolutionalAutoencoder(ABC):
     
     def save_weights(self, filepath: str, **kwargs) -> None:
         '''
-        Save the weights of the autoencoder model.
+        Save the weights of the autoencoder model. Weight file must end with the suffix .weights.h5 or an exception will be
+        raised.
 
         Args:
             filepath (str):
-                The filepath to save the weights to. Must end in .weights.h5.
+                The filepath to save the weights to.
             **kwargs:
                 Additional keyword arguments to pass to the save weights function.
         Returns:
