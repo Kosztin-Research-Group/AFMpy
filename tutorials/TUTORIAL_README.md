@@ -69,8 +69,7 @@ This will load jupyter in your default browser. Use the jupyter interface to fin
 2. Localization Atomic Force Microscopy (LAFM)
 3. Deep Spectral Clustering (DSC)
 4. Hierarchical Deep Spectral Clustering (HierarchicalDSC)
-5. Registration and Clustering (REC) *(WIP)*
-6. Iterative Registration and Clustering (IREC) *(WIP)*
+5. Iterative Registration and Clustering (IREC)
 
 ## 1. Simulated Atomic Force Microscopy
 
@@ -102,6 +101,7 @@ This will load jupyter in your default browser. Use the jupyter interface to fin
 
 - Check GPU availablility with AFMpy
 - Generate an instance of the AFMpy ConvolutionalAutoencoder object
+- Configure compilation, fitting, and prediction parameters with included dataclasses
 - Apply Deep Spectral Clustering (DSC)
 - Calculate the masked structrual similarity index measure (SSIM) between images
 
@@ -111,10 +111,8 @@ This will load jupyter in your default browser. Use the jupyter interface to fin
 
 - Apply Hierarchical Deep Spectral Clustering
 
-## 5. Registration and Clustering
+## 5. Iterative Registration and Clustering
 
-*Placeholder Text*
+**New Topics Covered**:
 
-## 6. Iterative Registration and Clustering
-
-*Placeholder Text*s
+- Apply Iterative Registration and Clustering
