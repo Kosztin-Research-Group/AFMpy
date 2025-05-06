@@ -102,6 +102,7 @@ This will load jupyter in your default browser. Use the jupyter interface to fin
 - Check GPU availablility with AFMpy
 - Generate an instance of the AFMpy ConvolutionalAutoencoder object
 - Configure compilation, fitting, and prediction parameters with included dataclasses
+- Loading and saving pretrained model weights
 - Apply Deep Spectral Clustering (DSC)
 - Calculate the masked structrual similarity index measure (SSIM) between images
 

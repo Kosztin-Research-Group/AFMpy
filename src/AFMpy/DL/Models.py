@@ -54,6 +54,9 @@ class ConvolutionalAutoencoder(ABC):
 
         This is useful for caching the initial state of the model to reset a trained model.
         '''
+        logger.debug(f'Caching the weights of ConvolutionalAutoencoder {id(self)}.')
+
+        # Cache the weights of the autoencoder
         self._init_weights = self.autoencoder.get_weights()
 
 
@@ -363,7 +366,6 @@ class DefaultCAE(ConvolutionalAutoencoder):
         self._encoder = encoder
         self._decoder = decoder
         self._autoencoder = autoencoder
-        self._cache_weights()
         
     @property
     def input_shape(self) -> Tuple:
