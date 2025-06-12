@@ -1,23 +1,44 @@
 [build-system]
-requires = ['setuptools>=64']
+requires = ['setuptools>=64', 'wheel']
 build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'AFMpy'
-version = '0.2.0'
+version = '1.0.0'
 description = 'Python toolkit for Atomic Force Microscopy (AFM) analysis'
 authors =[
     {name = 'Creighton M. Lisowski', email = 'clisowski@missouri.edu'}
 ]
 license = {text = 'GPL-3.0-or-later'}
 readme = 'README.md'
-requires-python = '>3.9'
+requires-python = '3.12.2'
+
 classifiers = [
-  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+  'Programming Language :: Python :: 3',
+  'Topic :: Scientific/Engineering :: Physics'
 ]
 
+keywords = [
+    'atomic-force-microscopy',
+    'AFM',
+    'simulated-atomic-force-microscopy',
+    'SimAFM',
+    'localization-atomic-force-microscopy',
+    'LAFM',
+    'deep-spectral-clustering',
+    'DSC',
+    'iterative-registration-and-clustering',
+    'IREC',
+    'image-analysis',
+    'biophysics'
+]
+
+[project.urls]
+Homepage = 'https://github.com/Kosztin-Research-Group/AFMpy'
+
 [project.optional-dependencies]
-gpu = ["cupy-cuda12x"]
+gpu = ['cupy-cuda12x']
 
 [tool.setuptools.packages.find]
-exclude = ["tests*"]
+exclude = ['tests*']
