@@ -1,6 +1,6 @@
 # AFMpy
 
-Toolkit for AFM analysis in python. Includes Simulated Atomic Force Microscopy (SimAFM), Localization Atomic Force Microscopy (LAFM), Conformational Clustering with Deep Spectral Clustering (DSC), and Iterative Registration and Clustering (IREC).
+A comprehensive Python toolkit for atomic force microscopy (AFM) analysis, featuring Simulated AFM (SimAFM) for generating synthetic AFM images, Localization AFM (LAFM) for high-resolution structural mapping, conformational clustering using Deep Spectral Clustering (DSC), and Iterative Registration and Clustering (IREC) for automated image alignment and classification.
 
 ## Table of Contents
 - [Installation](#installation)
