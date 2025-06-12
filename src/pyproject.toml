@@ -9,9 +9,7 @@ description = 'Python toolkit for Atomic Force Microscopy (AFM) analysis'
 authors =[
     {name = 'Creighton M. Lisowski', email = 'clisowski@missouri.edu'}
 ]
-license = {text = 'GPL-3.0-or-later'}
-readme = 'README.md'
-requires-python = '3.12.2'
+requires-python = '==3.12.2'
 
 classifiers = [
   'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
