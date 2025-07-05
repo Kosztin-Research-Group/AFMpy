@@ -8,6 +8,7 @@ A comprehensive Python toolkit for atomic force microscopy (AFM) analysis, featu
     - [Manual CPU Installation](#manual-cpu-installation)
     - [Manual GPU Installation](#manual-gpu-installation)
 - [Usage](#usage)
+- [Citation](#citation)
 - [License](#license)
 - [Contact](#contact)
 
@@ -165,6 +166,15 @@ import AFMpy as AFM
 ```
 
 A set of interactive tutorials are included in the ```tutorials/``` folder. See the ```TUTORIAL_README.md``` for downloading the tutorial files and running the tutorials.
+
+## Citation
+
+If you use **AFMpy** in academic work, please cite:
+
+Lisowski C M, King G M, Kosztin I (2025).
+*Automated Registration and Clustering for Enhanced Localization Atomic Force Microscopy of Flexible Membrane Proteins*.
+bioRxiv. https://doi.org/10.1101/2025.06.30.662259
+
 
 ## License
 AFMpy - Atomic Force Microscopy simulation and analysis in python.
